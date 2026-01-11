@@ -17,7 +17,6 @@ from tqdm import tqdm
 
 from .config import Config
 from .gyro_extractor import GyroExtractor, GyroData
-from .camera_calibration import CameraCalibration
 from .motion_compensator import MotionCompensator, CameraIntrinsics
 from .frame_extractor import FrameExtractor
 from .star_detector import StarDetector, StarField

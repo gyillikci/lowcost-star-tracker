@@ -1,15 +1,15 @@
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-
-# Virtual environments
-venv/
-env/
-ENV/
-.venv/
 
 # Distribution / packaging
 build/
@@ -52,7 +52,10 @@ coverage.xml
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Project-specific
 output/
@@ -64,6 +67,23 @@ experiments/output/
 *.mov
 *.MOV
 
+# Misc
+*.log
+
 # Keep example LRV files but ignore other video formats
 # examples/*.mp4
 # examples/*.MP4
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.MP4
+*.AVI
+*.MOV
+*.LRV
+*.THM
+>>>>>>> origin/main
