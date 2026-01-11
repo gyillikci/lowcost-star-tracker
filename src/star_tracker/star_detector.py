@@ -358,7 +358,7 @@ class StarMatcher:
     def _build_triangles(
         self, 
         positions: np.ndarray, 
-        max_triangles: int = 1000
+        max_triangles: int = 200
     ) -> list[dict]:
         """Build triangle descriptors from star positions."""
         n = len(positions)
@@ -368,7 +368,7 @@ class StarMatcher:
         triangles = []
         
         # Use brightest/largest stars for triangle building
-        indices = list(range(min(n, 30)))  # Limit to prevent combinatorial explosion
+        indices = list(range(min(n, 15)))  # Limit to 15 stars to keep triangles manageable
         
         for i in range(len(indices)):
             for j in range(i + 1, len(indices)):
@@ -406,15 +406,43 @@ class StarMatcher:
         triangles2: list[dict],
         tolerance: float = 0.05,
     ) -> list[tuple[int, int]]:
-        """Match triangles by descriptor similarity."""
+        """Match triangles by descriptor similarity using binning for speed."""
+        if not triangles1 or not triangles2:
+            return []
+        
         matches = []
         
+        # Build a hash table for triangles2 using quantized descriptors
+        # This gives O(1) lookup instead of O(n) for each triangle
+        bin_size = tolerance
+        bins = {}
+        
+        for j, t2 in enumerate(triangles2):
+            # Quantize descriptor to create hash key
+            d = t2["descriptor"]
+            key = (round(d[0] / bin_size), round(d[1] / bin_size), round(d[2] / bin_size))
+            if key not in bins:
+                bins[key] = []
+            bins[key].append(j)
+        
+        # For each triangle in triangles1, check nearby bins
         for i, t1 in enumerate(triangles1):
-            for j, t2 in enumerate(triangles2):
-                d1 = np.array(t1["descriptor"])
-                d2 = np.array(t2["descriptor"])
-                
-                if np.max(np.abs(d1 - d2)) < tolerance:
-                    matches.append((i, j))
+            d1 = np.array(t1["descriptor"])
+            key = (round(d1[0] / bin_size), round(d1[1] / bin_size), round(d1[2] / bin_size))
+            
+            # Check the key and neighboring bins
+            for dk0 in (-1, 0, 1):
+                for dk1 in (-1, 0, 1):
+                    for dk2 in (-1, 0, 1):
+                        neighbor_key = (key[0] + dk0, key[1] + dk1, key[2] + dk2)
+                        if neighbor_key in bins:
+                            for j in bins[neighbor_key]:
+                                d2 = np.array(triangles2[j]["descriptor"])
+                                if np.max(np.abs(d1 - d2)) < tolerance:
+                                    matches.append((i, j))
+            
+            # Early termination if we have enough matches
+            if len(matches) >= 50:
+                break
         
         return matches
