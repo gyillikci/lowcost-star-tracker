@@ -23,12 +23,13 @@ This paper presents a novel low-cost star tracker system that leverages consumer
 3. [Commercial Star Tracker Analysis](#3-commercial-star-tracker-analysis)
 4. [System Architecture](#4-system-architecture)
 5. [Hardware Components](#5-hardware-components)
-6. [Software Algorithms](#6-software-algorithms)
-7. [Performance Analysis](#7-performance-analysis)
-8. [Cost Comparison](#8-cost-comparison)
-9. [Results and Discussion](#9-results-and-discussion)
-10. [Conclusions and Future Work](#10-conclusions-and-future-work)
-11. [References](#11-references)
+6. [Camera + IMU Sensor Fusion](#6-camera--imu-sensor-fusion)
+7. [Software Algorithms](#7-software-algorithms)
+8. [Performance Analysis](#8-performance-analysis)
+9. [Cost Comparison](#9-cost-comparison)
+10. [Results and Discussion](#10-results-and-discussion)
+11. [Conclusions and Future Work](#11-conclusions-and-future-work)
+12. [References](#12-references)
 
 ---
 
@@ -698,11 +699,407 @@ The ASI585MC + Entaniya M12 220 configuration excels for:
 
 ---
 
-## 6. Software Algorithms
+## 6. Camera + IMU Sensor Fusion
 
-### 6.1 Gyroscope Data Processing
+### 6.1 Fundamental Concept
 
-#### 6.1.1 GPMF Extraction
+The core innovation of our star tracker lies in the tight integration of camera imagery with Inertial Measurement Unit (IMU) orientation data. This sensor fusion approach enables real-time knowledge of where the camera is pointing in celestial coordinates, which is essential for:
+
+1. **Motion Compensation** - Correcting for camera movement during exposure
+2. **Star Field Prediction** - Knowing which stars should appear in the field of view
+3. **Frame Alignment** - Precise registration of multiple frames for stacking
+4. **Lost-in-Space Solution** - Rapid star identification using predicted positions
+
+### 6.2 Physical Setup: Rigid Camera-IMU Coupling
+
+For accurate sensor fusion, the camera and IMU must be rigidly coupled so that any rotation of the camera is identically measured by the IMU.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CAMERA + IMU RIGID BODY ASSEMBLY                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│         ┌───────────────┐                                           │
+│         │   CAMERA      │◄── Optical axis (boresight)               │
+│         │   SENSOR      │                                           │
+│         │   ┌─────┐     │                                           │
+│         │   │     │     │    Field of View                          │
+│         │   │ CCD │     │         ╱╲                                │
+│         │   │     │     │        ╱  ╲                               │
+│         │   └─────┘     │       ╱    ╲                              │
+│         └───────┬───────┘      ╱      ╲                             │
+│                 │             ╱ Stars  ╲                            │
+│         ┌───────┴───────┐                                           │
+│         │      IMU      │                                           │
+│         │  ┌─────────┐  │                                           │
+│         │  │ Gyro    │  │◄── 3-axis angular velocity (ωx, ωy, ωz)  │
+│         │  │ Accel   │  │◄── 3-axis acceleration (ax, ay, az)      │
+│         │  │ (Mag)   │  │◄── 3-axis magnetometer (optional)        │
+│         │  └─────────┘  │                                           │
+│         └───────────────┘                                           │
+│                                                                      │
+│    Rigid coupling ensures: R_camera = R_imu (same orientation)      │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation Options:**
+
+| Configuration | IMU Source | Coupling | Accuracy |
+|---------------|-----------|----------|----------|
+| GoPro Hero 7 | Built-in BMI260 | Factory-calibrated | High |
+| External IMU + Camera | BNO055, MPU9250 | Custom mount | Requires calibration |
+| ASI585MC + External IMU | Separate 9-DOF | Rigid bracket | Requires calibration |
+
+### 6.3 Coordinate Systems and Transformations
+
+#### 6.3.1 Reference Frames
+
+Four coordinate systems are involved in the sensor fusion:
+
+```
+1. IMU Body Frame (B)
+   - Origin: IMU center
+   - X: Forward (camera boresight direction)
+   - Y: Right
+   - Z: Down
+
+2. Camera Frame (C)
+   - Origin: Camera optical center
+   - X: Right (image +u direction)
+   - Y: Down (image +v direction)
+   - Z: Forward (optical axis)
+
+3. Local Navigation Frame (N) - North-East-Down (NED)
+   - X: North
+   - Y: East
+   - Z: Down (gravity direction)
+
+4. Celestial Frame (ICRS/J2000)
+   - Origin: Solar system barycenter
+   - X: Vernal equinox direction
+   - Y: 90° east along celestial equator
+   - Z: Celestial north pole
+```
+
+#### 6.3.2 Transformation Chain
+
+To map a celestial coordinate to image pixels:
+
+```
+                    R_earth        R_local        R_imu         R_cam_imu      K
+Celestial (RA,Dec) ────────► NED ────────► Body ────────► Camera ────────► Pixels (u,v)
+      ↓                 ↓              ↓              ↓              ↓
+   (α, δ)         (LST, lat)    (q_orientation)   (calibrated)   (intrinsics)
+```
+
+**Mathematical Formulation:**
+
+```
+p_celestial = [cos(δ)cos(α), cos(δ)sin(α), sin(δ)]ᵀ     # Unit vector to star
+
+p_local = R_earth(LST, latitude) · p_celestial           # Transform to local frame
+
+p_body = R_imu · p_local                                 # Apply IMU orientation
+
+p_camera = R_cam_imu · p_body                            # IMU-to-camera alignment
+
+p_image = K · p_camera / p_camera[2]                     # Project to image plane
+
+Where:
+- LST = Local Sidereal Time
+- R_imu = Rotation matrix from IMU quaternion
+- R_cam_imu = Camera-IMU alignment matrix (calibrated)
+- K = Camera intrinsic matrix
+```
+
+### 6.4 3D Celestial Sphere Visualization
+
+Our system includes a real-time 3D Celestial Sphere Viewer that visualizes the camera's orientation relative to the star field. This tool is invaluable for:
+
+- **Debugging** sensor fusion algorithms
+- **Verifying** IMU-camera alignment
+- **Educational** demonstration of celestial mechanics
+- **Real-time monitoring** of pointing direction
+
+#### 6.4.1 Visualization Components
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    3D CELESTIAL SPHERE VIEWER                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│    ┌─────────────────────────────┐  ┌─────────────────────────────┐ │
+│    │                             │  │                             │ │
+│    │      CELESTIAL SPHERE       │  │       CAMERA FEED           │ │
+│    │                             │  │                             │ │
+│    │    ★  ·  ·  ★  ·           │  │    ┌─────────────────────┐  │ │
+│    │   ·  ·  ★  ·  ·  ★         │  │    │                     │  │ │
+│    │  ·  ┌────────────┐  ·      │  │    │   Live camera       │  │ │
+│    │ ★  │  CAMERA    │  ·  ★   │  │    │   preview with      │  │ │
+│    │  ·  │    FOV     │  ·      │  │    │   detected stars    │  │ │
+│    │   ·  └────────────┘  ·     │  │    │                     │  │ │
+│    │    ★  ·  ·  ★  ·  ★        │  │    └─────────────────────┘  │ │
+│    │                             │  │                             │ │
+│    │  ── Celestial equator       │  │   IMU: [w,x,y,z]           │ │
+│    │  ── Ecliptic                │  │   RA: 12h 34m 56s          │ │
+│    │  ── Local horizon           │  │   Dec: +45° 12' 34"        │ │
+│    │                             │  │                             │ │
+│    └─────────────────────────────┘  └─────────────────────────────┘ │
+│                                                                      │
+│    Controls:                                                         │
+│    ─────────────────────────────────────────────────────────────    │
+│    Left Mouse Drag - Rotate view    R - Reset view                  │
+│    Scroll Wheel    - Zoom in/out    G - Toggle grid                 │
+│    C - Toggle constellations        F - Toggle FOV display          │
+│    Space - Pause/Resume             Q/ESC - Quit                    │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.4.2 Camera Field of View Projection
+
+The camera's field of view is projected onto the celestial sphere as a quadrilateral (frustum intersection):
+
+```
+Given camera orientation quaternion q and intrinsic matrix K:
+
+1. Define image corners: (0,0), (W,0), (W,H), (0,H)
+
+2. Back-project to unit rays:
+   ray_i = K⁻¹ · [u_i, v_i, 1]ᵀ
+   ray_i = ray_i / ||ray_i||
+
+3. Rotate to celestial frame:
+   celestial_ray_i = R(q)ᵀ · R_earth(t)ᵀ · ray_i
+
+4. Convert to spherical coordinates:
+   RA_i = atan2(y_i, x_i)
+   Dec_i = asin(z_i)
+
+5. Draw FOV polygon on celestial sphere connecting the 4 corners
+```
+
+### 6.5 IMU-Camera Calibration
+
+For systems with external IMUs, the relative orientation between IMU and camera must be calibrated.
+
+#### 6.5.1 Calibration Procedure
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    IMU-CAMERA CALIBRATION PROCEDURE                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Step 1: Mount camera and IMU rigidly together                      │
+│          ┌─────────┐                                                │
+│          │ Camera  │                                                │
+│          └────┬────┘                                                │
+│          ┌────┴────┐                                                │
+│          │   IMU   │  ◄── Approximate alignment                     │
+│          └─────────┘                                                │
+│                                                                      │
+│  Step 2: Capture calibration sequence                               │
+│          - Point at known star field (use planetarium software)     │
+│          - Rotate assembly through multiple orientations            │
+│          - Record IMU data + star positions in each frame           │
+│                                                                      │
+│  Step 3: Solve for R_cam_imu                                        │
+│          - Detect stars in images → measured positions              │
+│          - Query star catalog → true celestial positions            │
+│          - IMU provides R_imu for each frame                        │
+│          - Solve: R_cam_imu = argmin Σ ||p_measured - p_predicted||²│
+│                                                                      │
+│  Step 4: Validate calibration                                       │
+│          - Point at different star field                            │
+│          - Verify predicted vs measured star positions              │
+│          - Reprojection error should be < 1 pixel                   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 6.5.2 Calibration Matrix
+
+The IMU-to-camera rotation is typically a small correction:
+
+```
+R_cam_imu = R_z(ψ) · R_y(θ) · R_x(φ)
+
+Where:
+- φ (roll): Rotation about optical axis
+- θ (pitch): Rotation about camera Y axis
+- ψ (yaw): Rotation about camera Z axis
+
+For GoPro with built-in IMU: R_cam_imu ≈ I (identity, factory-calibrated)
+For external IMU: Typically |φ|, |θ|, |ψ| < 5° after careful mounting
+```
+
+### 6.6 Sensor Fusion Algorithms
+
+#### 6.6.1 Gyroscope-Only Integration
+
+The simplest approach integrates gyroscope angular velocities:
+
+```python
+def integrate_gyro(gyro_data, dt):
+    """Dead-reckoning orientation from gyroscope."""
+    q = Quaternion(1, 0, 0, 0)  # Identity (initial orientation)
+
+    for omega in gyro_data:
+        # Quaternion derivative: dq/dt = 0.5 * q ⊗ [0, ω]
+        omega_quat = Quaternion(0, omega[0], omega[1], omega[2])
+        q_dot = 0.5 * q * omega_quat
+
+        # Integrate
+        q = q + q_dot * dt
+        q = q.normalized()
+
+    return q
+```
+
+**Limitations:**
+- Gyroscope bias causes drift (~1-10°/hour)
+- No absolute reference (only relative orientation)
+- Accumulating errors over time
+
+#### 6.6.2 VQF Sensor Fusion (Recommended)
+
+The Versatile Quaternion-based Filter (VQF) combines gyroscope and accelerometer for drift-free orientation:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         VQF SENSOR FUSION                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│    Gyroscope ω ──┐                                                  │
+│                  │     ┌──────────────┐                             │
+│                  ├────►│   Gyroscope  │                             │
+│                  │     │  Integration │────┐                        │
+│    Bias b̂ ──────┘     └──────────────┘    │                        │
+│                                            │    ┌────────────────┐  │
+│                              ┌─────────────┼───►│   Quaternion   │  │
+│                              │             │    │    Output      │──►│
+│    Accelerometer a ──┐       │             │    │   q(t)         │  │
+│                      │  ┌────┴─────┐       │    └────────────────┘  │
+│                      └─►│   Tilt   │───────┘                        │
+│                         │Correction│                                │
+│                         └──────────┘                                │
+│                              ▲                                      │
+│                              │                                      │
+│                         ┌────┴─────┐                                │
+│                         │   Rest   │                                │
+│                         │Detection │                                │
+│                         └──────────┘                                │
+│                                                                      │
+│    Key Features:                                                    │
+│    • Online gyroscope bias estimation                               │
+│    • Accelerometer-based tilt correction (gravity reference)        │
+│    • Rest detection for improved bias estimation                    │
+│    • Adaptive gain based on motion dynamics                         │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**VQF Algorithm Steps:**
+
+1. **Gyroscope Integration:**
+   ```
+   q_gyro(t) = q(t-1) ⊗ exp([0, (ω - b̂) · dt / 2])
+   ```
+
+2. **Tilt Correction (from accelerometer):**
+   ```
+   g_measured = R(q_gyro) · [0, 0, 1]ᵀ  # Expected gravity in body frame
+   g_actual = normalize(accelerometer)   # Measured gravity
+
+   # Correction quaternion
+   q_correction = quaternion_from_vectors(g_measured, g_actual)
+   q(t) = slerp(q_gyro, q_gyro ⊗ q_correction, α)
+   ```
+
+3. **Bias Estimation (during rest):**
+   ```
+   if is_stationary(accelerometer):
+       b̂ = b̂ + β · (ω - b̂)  # Update bias estimate
+   ```
+
+#### 6.6.3 Star-Aided Correction
+
+For highest accuracy, detected stars provide absolute orientation correction:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    STAR-AIDED ORIENTATION CORRECTION                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│    IMU Orientation ───────┐                                         │
+│    q_imu(t)               │                                         │
+│                           ▼                                         │
+│                    ┌──────────────┐                                 │
+│                    │   Predict    │                                 │
+│    Star Catalog ──►│    Star      │──► Expected star positions      │
+│                    │  Positions   │    in image                     │
+│                    └──────────────┘                                 │
+│                           │                                         │
+│                           ▼                                         │
+│                    ┌──────────────┐                                 │
+│    Camera Frame ──►│    Match     │                                 │
+│    (detected      │    Stars     │                                 │
+│     stars)        └──────────────┘                                 │
+│                           │                                         │
+│                           ▼                                         │
+│                    ┌──────────────┐                                 │
+│                    │   Compute    │                                 │
+│                    │  Correction  │──► Δq (orientation error)       │
+│                    └──────────────┘                                 │
+│                           │                                         │
+│                           ▼                                         │
+│                    ┌──────────────┐                                 │
+│                    │    Apply     │                                 │
+│                    │   Kalman     │──► q_corrected(t)               │
+│                    │   Update     │                                 │
+│                    └──────────────┘                                 │
+│                                                                      │
+│    Benefits:                                                        │
+│    • Eliminates gyroscope drift completely                          │
+│    • Provides absolute celestial orientation                        │
+│    • Sub-arcminute accuracy achievable                              │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.7 Benefits for Star Tracking
+
+The camera+IMU sensor fusion provides critical advantages:
+
+| Capability | Without IMU | With IMU Fusion |
+|------------|-------------|-----------------|
+| Motion compensation | Optical flow (slow) | Direct quaternion transform (fast) |
+| Frame alignment | Feature matching | Predicted + refined |
+| Star identification | Lost-in-space search | Catalog lookup by position |
+| Exposure during motion | Blurred stars | Sharp (compensated) |
+| Real-time preview | Not possible | Live celestial overlay |
+| Processing speed | 1-5 fps | 30+ fps |
+
+### 6.8 Video Demonstration
+
+A demonstration of the camera+IMU fusion system is available:
+
+**YouTube Short:** https://youtube.com/shorts/96TbY9RKdZE
+
+The video shows:
+1. Physical setup with camera and IMU (orange cube) rigidly coupled
+2. Real-time 3D Celestial Sphere Viewer tracking camera orientation
+3. Camera field of view projected onto the star field
+4. Responsive orientation updates as the assembly is rotated
+
+---
+
+## 7. Software Algorithms
+
+### 7.1 Gyroscope Data Processing
+
+#### 7.1.1 GPMF Extraction
 
 The GoPro Metadata Format (GPMF) embeds telemetry data within MP4 files. Our extractor:
 
@@ -711,7 +1108,7 @@ The GoPro Metadata Format (GPMF) embeds telemetry data within MP4 files. Our ext
 3. Extracts ACCL streams (acceleration, optional)
 4. Synchronizes timestamps with video frames
 
-#### 6.1.2 Bias Estimation
+#### 7.1.2 Bias Estimation
 
 Gyroscope bias is estimated from stationary periods:
 
@@ -721,7 +1118,7 @@ Gyroscope bias is estimated from stationary periods:
 
 Where Δt is typically 1-2 seconds of assumed stationary recording.
 
-#### 6.1.3 Orientation Integration
+#### 7.1.3 Orientation Integration
 
 Angular velocities are integrated to obtain orientation quaternions using 4th-order Runge-Kutta (RK4):
 
@@ -739,7 +1136,7 @@ k4 = h · f(t + h, q + k3)
 q(t+h) = normalize(q + (k1 + 2k2 + 2k3 + k4)/6)
 ```
 
-#### 6.1.4 Filtering
+#### 7.1.4 Filtering
 
 A low-pass Butterworth filter removes high-frequency noise:
 
@@ -747,9 +1144,9 @@ A low-pass Butterworth filter removes high-frequency noise:
 - **Order:** 4th order
 - **Phase:** Zero-phase (forward-backward filtering)
 
-### 6.2 Motion Compensation
+### 7.2 Motion Compensation
 
-#### 6.2.1 Homography-Based Transformation
+#### 7.2.1 Homography-Based Transformation
 
 For each frame, a homography matrix transforms pixels to compensate for camera rotation:
 
@@ -762,7 +1159,7 @@ Where:
 - R_relative = R_target · R_frame^T (relative rotation)
 - R_target = Reference orientation (mean, median, or first frame)
 
-#### 6.2.2 Frame Warping
+#### 7.2.2 Frame Warping
 
 OpenCV's `warpPerspective` applies the homography:
 
@@ -774,9 +1171,9 @@ stabilized = cv2.warpPerspective(frame, H, (width, height),
 
 Lanczos interpolation preserves star point-spread functions.
 
-### 6.3 Star Detection
+### 7.3 Star Detection
 
-#### 6.3.1 Background Estimation
+#### 7.3.1 Background Estimation
 
 Adaptive background estimation using sigma-clipped statistics:
 
@@ -788,7 +1185,7 @@ Adaptive background estimation using sigma-clipped statistics:
    - Repeat 3 iterations
 3. Interpolate background to full resolution
 
-#### 6.3.2 Source Detection
+#### 7.3.2 Source Detection
 
 Connected component analysis identifies stars:
 
@@ -800,7 +1197,7 @@ Connected component analysis identifies stars:
    - Circularity: < 0.6 ellipticity
    - Peak: > 5σ above background
 
-#### 6.3.3 Centroid Measurement
+#### 7.3.3 Centroid Measurement
 
 Sub-pixel positions via intensity-weighted centroid:
 
@@ -809,7 +1206,7 @@ x_c = Σ(I_i · x_i) / Σ(I_i)
 y_c = Σ(I_i · y_i) / Σ(I_i)
 ```
 
-#### 6.3.4 FWHM Calculation
+#### 7.3.4 FWHM Calculation
 
 Full Width at Half Maximum from second moments:
 
@@ -822,16 +1219,16 @@ a, b = eigenvalues of [[μ_xx, μ_xy], [μ_xy, μ_yy]]
 FWHM = 2.355 × √(a × b)
 ```
 
-### 6.4 Triangle-Based Star Matching
+### 7.4 Triangle-Based Star Matching
 
-#### 6.4.1 Triangle Construction
+#### 7.4.1 Triangle Construction
 
 For each triplet of stars (A, B, C):
 1. Compute side lengths: d_AB, d_BC, d_CA
 2. Sort: d_1 ≤ d_2 ≤ d_3
 3. Normalize: (d_1/d_3, d_2/d_3) → forms 2D descriptor
 
-#### 6.4.2 Matching Algorithm
+#### 7.4.2 Matching Algorithm
 
 ```python
 def match_triangles(source_stars, target_stars, tolerance=0.05):
@@ -848,7 +1245,7 @@ def match_triangles(source_stars, target_stars, tolerance=0.05):
     return vote_for_best_matches(matches)
 ```
 
-#### 6.4.3 RANSAC Refinement
+#### 7.4.3 RANSAC Refinement
 
 Random Sample Consensus eliminates outlier matches:
 
@@ -858,15 +1255,15 @@ Random Sample Consensus eliminates outlier matches:
 4. Repeat 1000 iterations
 5. Refit with all inliers
 
-### 6.5 Quality Assessment
+### 7.5 Quality Assessment
 
-#### 6.5.1 Hard Limits (Immediate Rejection)
+#### 7.5.1 Hard Limits (Immediate Rejection)
 
 - Minimum stars: 10 (insufficient for alignment)
 - Maximum FWHM: 8.0 pixels (blurred/trailing)
 - Maximum background noise: 50.0 (overexposed/dawn)
 
-#### 6.5.2 Quality Score Computation
+#### 7.5.2 Quality Score Computation
 
 ```
 Q = w_stars × S_stars + w_fwhm × S_fwhm + w_bg × S_bg
@@ -879,9 +1276,9 @@ S_bg = exp(-noise / 20)
 Weights: w_stars = 0.3, w_fwhm = 0.4, w_bg = 0.3
 ```
 
-### 6.6 Image Stacking
+### 7.6 Image Stacking
 
-#### 6.6.1 Sigma-Clipping Algorithm
+#### 7.6.1 Sigma-Clipping Algorithm
 
 ```python
 def sigma_clip_stack(frames, sigma_low=3, sigma_high=3, max_iter=5):
@@ -903,7 +1300,7 @@ def sigma_clip_stack(frames, sigma_low=3, sigma_high=3, max_iter=5):
     return np.mean(stack * mask, axis=0) / np.mean(mask, axis=0)
 ```
 
-#### 6.6.2 Quality-Weighted Stacking
+#### 7.6.2 Quality-Weighted Stacking
 
 Frames are weighted by their quality scores:
 
@@ -915,9 +1312,9 @@ This prioritizes sharp, star-rich frames over degraded ones.
 
 ---
 
-## 7. Performance Analysis
+## 8. Performance Analysis
 
-### 7.1 Signal-to-Noise Ratio Improvement
+### 8.1 Signal-to-Noise Ratio Improvement
 
 For N stacked frames with independent noise:
 
@@ -932,7 +1329,7 @@ SNR_stacked = SNR_single × √N
 | 60 seconds | 30 fps | 1800 | 42.4× |
 | 120 seconds | 30 fps | 3600 | 60.0× |
 
-### 7.2 Limiting Magnitude
+### 8.2 Limiting Magnitude
 
 The limiting magnitude improvement follows:
 
@@ -947,7 +1344,7 @@ The limiting magnitude improvement follows:
 | 900 | 3.7 | ~9.7-10.7 mag |
 | 3600 | 4.4 | ~10.4-11.4 mag |
 
-### 7.3 Angular Resolution
+### 8.3 Angular Resolution
 
 Limited by:
 1. **Optical diffraction:** θ = 1.22 λ/D ≈ 2.5 arcmin (for f/2.8, 3mm aperture)
@@ -956,7 +1353,7 @@ Limited by:
 
 Practical resolution: **1-2 arcminutes**
 
-### 7.4 Processing Performance
+### 8.4 Processing Performance
 
 Benchmarks on Intel i7-10700 (8-core, 2.9 GHz):
 
@@ -971,20 +1368,20 @@ Benchmarks on Intel i7-10700 (8-core, 2.9 GHz):
 | Image Stacking | 20-40 s | 4 GB |
 | **Total** | **3-6 minutes** | **4 GB peak** |
 
-### 7.5 Accuracy Metrics
+### 8.5 Accuracy Metrics
 
-#### 7.5.1 Pointing Accuracy
+#### 8.5.1 Pointing Accuracy
 
 Without plate-solving: **Not applicable** (no absolute orientation)
 With future plate-solving integration: **~1-5 arcminutes** (estimated)
 
-#### 7.5.2 Tracking Stability
+#### 8.5.2 Tracking Stability
 
 Gyroscope-based compensation accuracy:
 - Short-term (< 1 min): < 0.5 pixel RMS
 - Long-term (> 1 min): 1-3 pixel drift (gyro bias)
 
-#### 7.5.3 Alignment Accuracy
+#### 8.5.3 Alignment Accuracy
 
 Sub-pixel alignment via star matching:
 - Translation accuracy: 0.1-0.2 pixels
@@ -992,9 +1389,9 @@ Sub-pixel alignment via star matching:
 
 ---
 
-## 8. Cost Comparison
+## 9. Cost Comparison
 
-### 8.1 Our Low-Cost Systems
+### 9.1 Our Low-Cost Systems
 
 #### Configuration 1: GoPro-Based System (Portable)
 
@@ -1033,7 +1430,7 @@ Sub-pixel alignment via star matching:
 | ASI585MC Standard | $724-1,019 | All-sky monitoring, meteor detection |
 | ASI585MC Pro | $904-1,229 | Scientific applications, long exposures |
 
-### 8.2 Comparison with Commercial Solutions
+### 9.2 Comparison with Commercial Solutions
 
 | Solution | Cost | FOV | Accuracy | Use Case |
 |----------|------|-----|----------|----------|
@@ -1048,7 +1445,7 @@ Sub-pixel alignment via star matching:
 | Sinclair ST-16RT2 | $50,000 | 20° | 2-7 arcsec | CubeSat missions |
 | Ball CT-2020 | $300,000 | 20° | 2 arcsec | Spacecraft |
 
-### 8.3 Cost-Effectiveness Ratio
+### 9.3 Cost-Effectiveness Ratio
 
 ```
 Cost Reduction = (Commercial Cost - Our Cost) / Commercial Cost × 100%
@@ -1060,7 +1457,7 @@ vs. CubeSat tracker: (50000 - 350) / 50000 = 99.3% savings
 vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 ```
 
-### 8.4 Value Proposition
+### 9.4 Value Proposition
 
 | Metric | Our System | Equatorial Mount | CubeSat Tracker |
 |--------|------------|------------------|-----------------|
@@ -1073,9 +1470,9 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 
 ---
 
-## 9. Results and Discussion
+## 10. Results and Discussion
 
-### 9.1 Advantages of Our Approach
+### 10.1 Advantages of Our Approach
 
 1. **Extreme Cost Reduction:** 95-99% cost savings compared to commercial alternatives
 2. **Portability:** Complete system weighs < 1 kg
@@ -1084,7 +1481,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 5. **Software Upgradability:** Algorithms can be improved without hardware changes
 6. **Open Source:** Community-driven improvements and transparency
 
-### 9.2 Limitations
+### 10.2 Limitations
 
 1. **Limited Light Gathering:** Small sensor and lens aperture
 2. **Fixed Focal Length:** No zoom capability
@@ -1093,7 +1490,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 5. **No Absolute Orientation:** Cannot determine celestial coordinates without plate-solving
 6. **Environmental Sensitivity:** Consumer hardware not rated for extreme conditions
 
-### 9.3 Comparison with Mechanical Tracking
+### 10.3 Comparison with Mechanical Tracking
 
 | Aspect | Gyro + Stacking | Equatorial Mount |
 |--------|-----------------|------------------|
@@ -1105,7 +1502,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 | Setup time | Minutes | 15-30 min |
 | Cost | Low | Medium-High |
 
-### 9.4 Suitable Applications
+### 10.4 Suitable Applications
 
 **Ideal for:**
 - Wide-field Milky Way photography
@@ -1124,9 +1521,9 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 
 ---
 
-## 10. Conclusions and Future Work
+## 11. Conclusions and Future Work
 
-### 10.1 Conclusions
+### 11.1 Conclusions
 
 We have presented a low-cost star tracker system that achieves remarkable cost-effectiveness by leveraging consumer hardware and sophisticated software algorithms. Key findings:
 
@@ -1138,16 +1535,16 @@ We have presented a low-cost star tracker system that achieves remarkable cost-e
 
 The system successfully demonstrates that sophisticated astronomical imaging is achievable without expensive equipment, democratizing access to astrophotography for students, amateur astronomers, and researchers with limited budgets.
 
-### 10.2 Future Work
+### 11.2 Future Work
 
-#### 10.2.1 Short-Term Improvements
+#### 11.2.1 Short-Term Improvements
 
 - **Plate-Solving Integration:** Add astrometric calibration for absolute celestial coordinates
 - **Dark Frame Calibration:** Implement hot pixel removal and thermal noise correction
 - **Flat Field Correction:** Compensate for lens vignetting and sensor non-uniformity
 - **GPU Acceleration:** CUDA/OpenCL implementation for real-time processing
 
-#### 10.2.2 Medium-Term Goals
+#### 11.2.2 Medium-Term Goals
 
 - **Additional Camera Support:** DJI, Insta360, smartphone integration
 - **Real-Time Preview:** Live stacking and quality feedback
@@ -1155,7 +1552,7 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 - **Web Interface:** Browser-based processing and visualization
 - **Mobile App:** Direct processing on smartphones
 
-#### 10.2.3 Long-Term Vision
+#### 11.2.3 Long-Term Vision
 
 - **CubeSat Integration:** Adapt algorithms for space applications
 - **Multi-Camera Arrays:** Synchronized capture for wider fields
@@ -1165,7 +1562,7 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 ---
 
-## 11. References
+## 12. References
 
 ### Academic Literature
 
@@ -1210,6 +1607,14 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 17. Sony Semiconductor Solutions. "IMX585 STARVIS 2 CMOS Image Sensor." Sony Corporation.
 
 18. AllSkyCams. "All-Sky Camera Systems and Meteor Detection." https://www.allskycams.com/
+
+### Sensor Fusion References
+
+19. Laidig, D., & Seel, T. (2023). "VQF: Highly Accurate IMU Orientation Estimation with Bias Estimation and Magnetic Disturbance Rejection." Information Fusion, 91, 187-204.
+
+20. Madgwick, S. O. H. (2010). "An Efficient Orientation Filter for Inertial and Inertial/Magnetic Sensor Arrays." Technical Report, University of Bristol.
+
+21. Low-Cost Star Tracker Project. "Camera + IMU Sensor Fusion Demonstration." YouTube. https://youtube.com/shorts/96TbY9RKdZE
 
 ---
 
@@ -1330,13 +1735,26 @@ output:
 
 ---
 
-*Document Version: 1.1*
+*Document Version: 1.2*
 *Last Updated: January 2026*
 *License: MIT*
 
 ---
 
 ## Changelog
+
+### Version 1.2 (January 2026)
+- **NEW SECTION:** Camera + IMU Sensor Fusion (Section 6)
+  - Detailed explanation of rigid camera-IMU coupling
+  - Coordinate systems and transformation chain mathematics
+  - 3D Celestial Sphere Viewer documentation
+  - IMU-camera calibration procedure
+  - VQF sensor fusion algorithm explanation
+  - Star-aided orientation correction
+  - Benefits comparison table (with/without IMU)
+- Added YouTube demonstration link: https://youtube.com/shorts/96TbY9RKdZE
+- Updated table of contents with new section
+- Renumbered sections 7-12
 
 ### Version 1.1 (January 2026)
 - Added enhanced configuration: ZWO ASI585MC + Entaniya M12 220 all-sky system
