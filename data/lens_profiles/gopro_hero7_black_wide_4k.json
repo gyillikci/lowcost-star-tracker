@@ -1,0 +1,33 @@
+{
+  "camera_brand": "GoPro",
+  "camera_model": "Hero7 Black",
+  "lens_model": "",
+  "camera_setting": "Wide",
+  
+  "calib_dimension": {
+    "w": 3840,
+    "h": 2160
+  },
+  
+  "distortion_model": "opencv_fisheye",
+  "digital_lens": null,
+  
+  "fisheye_params": {
+    "camera_matrix": [
+      [1130.0, 0.0, 1920.0],
+      [0.0, 1130.0, 1080.0],
+      [0.0, 0.0, 1.0]
+    ],
+    "distortion_coeffs": [
+      -0.35,
+      0.15,
+      -0.02,
+      0.01
+    ]
+  },
+  
+  "frame_readout_time": 8.3,
+  "gyro_lpf": 50,
+  
+  "note": "GoPro Hero7 Black - Wide Mode 4K (3840x2160). Focal length scales 2x from 1080p. Distortion coeffs are dimensionless ratios. Rolling shutter ~8.3ms at 60fps."
+}

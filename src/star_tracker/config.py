@@ -32,7 +32,18 @@ class GyroConfig:
     bias_estimation: bool = True
     bias_window_seconds: float = 2.0
     low_pass_cutoff_hz: float = 50.0
-    integration_method: Literal["euler", "rk4"] = "rk4"
+    integration_method: Literal["euler", "rk4", "vqf"] = "vqf"
+    
+    # VQF sensor fusion options
+    use_accelerometer: bool = True
+    vqf_tau_acc: float = 3.0  # Accelerometer time constant
+    vqf_rest_detection: bool = True
+    vqf_rest_threshold_gyr: float = 2.0  # deg/s
+    vqf_rest_threshold_acc: float = 0.5  # m/s²
+    
+    # Velocity-adaptive smoothing
+    velocity_adaptive_smoothing: bool = True
+    smoothing_time_constant: float = 0.5  # seconds
 
 
 @dataclass
@@ -43,6 +54,14 @@ class MotionCompensationConfig:
     interpolation: Literal["nearest", "linear", "cubic"] = "cubic"
     crop_black_borders: bool = True
     crop_margin_percent: float = 5.0
+    
+    # Rolling shutter correction
+    rolling_shutter_correction: bool = True
+    frame_readout_time_ms: float = 8.3  # 4K60 GoPro default
+    
+    # Lens profile
+    lens_profile_path: Optional[str] = None  # Path to lens profile JSON
+    use_smoothed_orientations: bool = True
 
 
 @dataclass
