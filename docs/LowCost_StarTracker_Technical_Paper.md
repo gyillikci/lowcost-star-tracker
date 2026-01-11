@@ -10,9 +10,9 @@
 
 ## Abstract
 
-This paper presents a novel low-cost star tracker system that leverages consumer-grade action cameras (GoPro Hero 7 Black) combined with advanced software algorithms to achieve astronomical imaging capabilities traditionally reserved for expensive professional equipment. By utilizing the camera's embedded 200 Hz gyroscope for motion compensation and implementing sophisticated frame stacking techniques, our system achieves a cost reduction of 95-99% compared to commercial star trackers while maintaining acceptable performance for amateur astrophotography and educational applications. The complete system can be assembled for under $500, compared to $10,000-$500,000 for commercial alternatives.
+This paper presents a novel low-cost star tracker system that leverages consumer-grade hardware combined with advanced software algorithms to achieve astronomical imaging capabilities traditionally reserved for expensive professional equipment. We present two hardware configurations: (1) a basic setup using GoPro Hero 7 Black with embedded gyroscope for motion compensation, and (2) an enhanced all-sky configuration using the ZWO ASI585MC astronomy camera paired with an Entaniya M12 220° fisheye lens for full-hemisphere coverage. By implementing sophisticated frame stacking techniques and star detection algorithms, our system achieves a cost reduction of 95-99% compared to commercial star trackers while maintaining acceptable performance for amateur astrophotography, meteor detection, and educational applications. The complete system can be assembled for $500-1,500, compared to $10,000-$500,000 for commercial alternatives.
 
-**Keywords:** Star Tracker, Astrophotography, Gyroscope Stabilization, Image Stacking, Low-Cost Sensors, GoPro, Motion Compensation
+**Keywords:** Star Tracker, Astrophotography, Gyroscope Stabilization, Image Stacking, Low-Cost Sensors, GoPro, ASI585MC, All-Sky Camera, Fisheye Lens, Motion Compensation
 
 ---
 
@@ -433,6 +433,269 @@ Distortion coefficients (Brown-Conrady model):
 - k2 = 0.08 (radial)
 - p1, p2 ≈ 0 (tangential, negligible)
 
+### 5.4 Enhanced Configuration: ZWO ASI585MC + Entaniya M12 220
+
+For applications requiring higher sensitivity, larger field of view, or all-sky coverage, we provide an enhanced hardware configuration using dedicated astronomy equipment.
+
+#### 5.4.1 ZWO ASI585MC Camera
+
+The ZWO ASI585MC is a high-performance color astronomy camera based on Sony's latest STARVIS 2 technology, offering exceptional sensitivity and low noise characteristics ideal for star tracking and meteor detection.
+
+**Sensor Specifications:**
+
+| Parameter | Value |
+|-----------|-------|
+| Sensor Model | Sony IMX585 (STARVIS 2) |
+| Sensor Type | Back-Illuminated CMOS |
+| Sensor Format | 1/1.2" (larger than GoPro's 1/2.3") |
+| Resolution | 3840 × 2160 (8.29 MP) |
+| Pixel Size | 2.9 μm × 2.9 μm |
+| Sensor Dimensions | 11.13 mm × 6.26 mm |
+| Sensor Diagonal | 12.84 mm |
+| Quantum Efficiency (QE) | 91% peak (exceptional) |
+| Full Well Capacity | 40,000 e⁻ (3× previous generation) |
+| Read Noise | 0.8 e⁻ (extremely low) |
+| ADC | 12-bit |
+| Frame Rate | 46.9 FPS at full resolution (12-bit) |
+| Interface | USB 3.0 |
+| Amp Glow | Zero (critical for long exposures) |
+
+**Key Advantages over GoPro:**
+
+| Feature | ASI585MC | GoPro Hero 7 Black |
+|---------|----------|-------------------|
+| Sensor Size | 1/1.2" (12.84mm diag) | 1/2.3" (6.17mm diag) |
+| Pixel Size | 2.9 μm | 1.55 μm |
+| QE Peak | 91% | ~50% (estimated) |
+| Read Noise | 0.8 e⁻ | ~3-5 e⁻ (estimated) |
+| Full Well | 40,000 e⁻ | ~8,000 e⁻ (estimated) |
+| Amp Glow | Zero | Present in long exposures |
+| Cooling (Pro) | -35°C below ambient | None |
+| Raw Output | 12-bit uncompressed | 10-bit compressed |
+
+**High Conversion Gain (HCG) Mode:**
+
+The ASI585MC features automatic HCG mode activation:
+- Triggers at gain ≥252 (standard) or ≥200 (Pro version)
+- Maintains ~12-bit dynamic range at high gain
+- Read noise drops to 0.7-1.5 e⁻
+- Optimal for faint star detection
+
+**Spectral Response:**
+
+The ASI585MC has enhanced sensitivity in red, green, and near-infrared (NIR) wavelengths:
+- Particularly strong in >850nm range
+- 1.5× more sensitive than previous IMX485 sensor in NIR
+- Excellent for hydrogen-alpha (Hα) nebula detection
+
+#### 5.4.2 Entaniya Fisheye M12 220 Lens
+
+The Entaniya Fisheye M12 220 is a precision Japanese-manufactured super wide-angle lens designed for full-hemisphere imaging applications.
+
+**Optical Specifications:**
+
+| Parameter | Value |
+|-----------|-------|
+| Field of View | 220° (full hemisphere + below horizon) |
+| Focal Length | 1.34 mm |
+| Aperture | f/2.0 (fixed) |
+| Optical Formula | 10 elements (including 1× ED glass) |
+| Projection Type | Equidistant (equal angular distortion) |
+| Image Circle | 5.1 mm diameter |
+| Sensor Compatibility | 1/2.3" to 1/1.7" sensors |
+| Mount Type | M12 × P0.5 (S-mount) |
+| Weight | 52g (without caps) |
+| AR Coating | Yes (multi-coated) |
+| Resolution | 4K+ edge-to-edge |
+| Manufacturing | Made in Japan |
+
+**Included Accessories:**
+- CS-mount adapter (for CS-mount cameras)
+- IR cut filter (removable for full-spectrum)
+- Allen wrench and mounting bolts
+
+**Equidistant Projection Characteristics:**
+
+The equidistant (f-theta) projection maintains linear relationship between incident angle and image distance:
+
+```
+r = f × θ
+
+Where:
+r = radial distance from image center (mm)
+f = focal length (1.34 mm)
+θ = incident angle from optical axis (radians)
+```
+
+This projection type is ideal for:
+- Meteor trajectory measurement
+- All-sky photometry
+- Satellite tracking
+- Aurora monitoring
+
+**Distortion Model:**
+
+For the Entaniya M12 220 with equidistant projection:
+
+```
+θ_undistorted = r / f
+x = r × cos(φ)
+y = r × sin(φ)
+
+Where φ = azimuthal angle in image plane
+```
+
+Residual distortion from ideal equidistant: < 1% across full field
+
+#### 5.4.3 ASI585MC + Entaniya System Integration
+
+**Physical Setup:**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              ALL-SKY STAR TRACKER CONFIGURATION          │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│    ┌─────────────┐                                       │
+│    │  Entaniya   │  ← 220° Field of View                 │
+│    │  M12 220    │                                       │
+│    │   Lens      │                                       │
+│    └──────┬──────┘                                       │
+│           │ M12 mount                                    │
+│    ┌──────┴──────┐                                       │
+│    │  ASI585MC   │  ← USB 3.0 to Computer               │
+│    │   Camera    │                                       │
+│    └──────┬──────┘                                       │
+│           │                                              │
+│    ┌──────┴──────┐                                       │
+│    │   Tripod/   │  ← Pointing at zenith                 │
+│    │   Mount     │                                       │
+│    └─────────────┘                                       │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Camera Intrinsic Parameters (ASI585MC + Entaniya M12 220):**
+
+```
+Focal length: f = 1.34 mm
+Pixel size: p = 2.9 μm
+Focal length in pixels: f_px = f / p = 1340 / 2.9 ≈ 462 pixels
+
+K = [f_px    0    cx ]   [462    0   1920]
+    [  0   f_px   cy ] = [  0   462  1080]
+    [  0     0     1 ]   [  0    0     1 ]
+
+Image center: (1920, 1080) for 3840×2160 resolution
+```
+
+**Angular Resolution:**
+
+```
+Pixel scale = arctan(pixel_size / focal_length)
+            = arctan(2.9 μm / 1.34 mm)
+            = arctan(0.00216)
+            ≈ 0.124° = 7.44 arcmin/pixel
+
+For 220° FOV across ~1700 pixel radius:
+Effective resolution: ~7.7 arcmin/pixel at image center
+```
+
+**Comparison: GoPro vs ASI585MC+Entaniya:**
+
+| Parameter | GoPro Hero 7 (Linear) | ASI585MC + Entaniya |
+|-----------|----------------------|---------------------|
+| Field of View | 94.4° | 220° (full sky) |
+| Resolution | 4000 × 3000 | 3840 × 2160 |
+| Pixel Scale | ~1.8 arcmin/pixel | ~7.4 arcmin/pixel |
+| Light Sensitivity | Moderate | Excellent (91% QE) |
+| Gyroscope | Built-in 200 Hz | External required |
+| Use Case | Targeted fields | All-sky monitoring |
+| Cost | $200-400 | $450-600 |
+
+#### 5.4.4 Recommended Settings for ASI585MC
+
+**For Star Tracking / All-Sky Imaging:**
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Gain | 200-300 | HCG mode active, low noise |
+| Exposure | 1-10 seconds | Balance sensitivity vs. trailing |
+| Binning | 1×1 | Full resolution |
+| Format | RAW16 | Maximum dynamic range |
+| USB Traffic | 80-100 | Balance speed vs. stability |
+| Cooling (Pro) | -10°C to -20°C | Reduce thermal noise |
+
+**For Meteor Detection:**
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Gain | 300-350 | Maximum sensitivity |
+| Exposure | 1/30s (video) | Capture fast-moving objects |
+| Frame Rate | 30 FPS | Adequate temporal resolution |
+| Format | SER video | Efficient capture format |
+| Trigger | Motion detection | Automated recording |
+
+#### 5.4.5 All-Sky Applications
+
+The ASI585MC + Entaniya M12 220 configuration excels for:
+
+**1. Meteor Shower Monitoring**
+- Full hemisphere coverage captures all meteor events
+- High QE detects faint meteors (magnitude 5-6)
+- Equidistant projection enables accurate trajectory reconstruction
+- High frame rates capture meteor dynamics
+
+**2. Satellite Tracking**
+- Simultaneous tracking of multiple satellites
+- LEO to GEO orbit coverage
+- Starlink constellation monitoring
+- Space debris tracking
+
+**3. Variable Star Photometry**
+- All-sky simultaneous observation
+- Rapid transient detection
+- Nova/supernova search
+- Exoplanet transit monitoring (bright stars)
+
+**4. Weather and Atmospheric Monitoring**
+- Cloud cover assessment
+- Light pollution mapping
+- Aurora monitoring
+- Aircraft tracking
+
+**5. Educational Demonstrations**
+- Real-time constellation identification
+- Celestial sphere concepts
+- Diurnal motion visualization
+- Seasonal sky changes
+
+### 5.5 Hardware Configuration Comparison
+
+| Configuration | Cost | FOV | Sensitivity | Best Use Case |
+|---------------|------|-----|-------------|---------------|
+| **GoPro Hero 7 Black** | $200-400 | 94-122° | Moderate | Portable astrophotography, travel |
+| **ASI585MC + Entaniya** | $700-900 | 220° | Excellent | All-sky monitoring, meteor detection |
+| **ASI585MC Pro + Entaniya** | $900-1,100 | 220° | Exceptional | Long-exposure, scientific applications |
+
+### 5.6 Enhanced System Cost Breakdown
+
+**Configuration 2: ASI585MC + Entaniya M12 220**
+
+| Component | Cost (USD) |
+|-----------|------------|
+| ZWO ASI585MC Camera | $319-379 |
+| ZWO ASI585MC Pro (cooled) | $499-549 |
+| Entaniya M12 220 Lens | $280-350 |
+| M12 to CS-mount Adapter | Included with lens |
+| Weather-resistant Housing | $50-100 |
+| USB 3.0 Cable (active, 5m) | $25-40 |
+| Tripod/All-Sky Mount | $50-150 |
+| Processing Computer | Existing or $300+ |
+| Software | Free (open source) |
+| **Total (Standard)** | **$724-1,019** |
+| **Total (Pro/Cooled)** | **$904-1,189** |
+
 ---
 
 ## 6. Software Algorithms
@@ -731,7 +994,9 @@ Sub-pixel alignment via star matching:
 
 ## 8. Cost Comparison
 
-### 8.1 Our Low-Cost System
+### 8.1 Our Low-Cost Systems
+
+#### Configuration 1: GoPro-Based System (Portable)
 
 | Component | Cost (USD) |
 |-----------|------------|
@@ -744,17 +1009,44 @@ Sub-pixel alignment via star matching:
 | **Total (used camera)** | **$245-475** |
 | **Total (new camera)** | **$345-625** |
 
+#### Configuration 2: ASI585MC + Entaniya All-Sky System
+
+| Component | Cost (USD) |
+|-----------|------------|
+| ZWO ASI585MC Camera | $319-379 |
+| ZWO ASI585MC Pro (cooled, optional) | $499-549 |
+| Entaniya M12 220 Fisheye Lens | $280-350 |
+| Weather-resistant Enclosure | $50-100 |
+| USB 3.0 Active Cable (5m) | $25-40 |
+| All-Sky Mount/Tripod | $50-150 |
+| Power Supply (12V, for Pro) | $20-40 |
+| Software | Free (open source) |
+| **Total (Standard ASI585MC)** | **$724-1,019** |
+| **Total (ASI585MC Pro)** | **$904-1,229** |
+
+#### Configuration Summary
+
+| Configuration | Cost Range | Best For |
+|---------------|------------|----------|
+| GoPro (used) | $245-475 | Budget, portable, travel |
+| GoPro (new) | $345-625 | Portable astrophotography |
+| ASI585MC Standard | $724-1,019 | All-sky monitoring, meteor detection |
+| ASI585MC Pro | $904-1,229 | Scientific applications, long exposures |
+
 ### 8.2 Comparison with Commercial Solutions
 
-| Solution | Cost | Accuracy | Use Case |
-|----------|------|----------|----------|
-| **Our System** | **$250-500** | **1-5 arcmin** | **Amateur astro, education** |
-| Star Adventurer 2i | $400 | 5 arcmin/hr | Portable astrophotography |
-| iOptron SkyGuider Pro | $500 | 3.5 arcmin/hr | Portable astrophotography |
-| Celestron CGEM II | $2,000 | 3 arcmin RMS | Serious amateur |
-| Software Bisque MX | $5,000 | 1 arcmin | Semi-professional |
-| Sinclair ST-16RT2 | $50,000 | 2-7 arcsec | CubeSat missions |
-| Ball CT-2020 | $300,000 | 2 arcsec | Spacecraft |
+| Solution | Cost | FOV | Accuracy | Use Case |
+|----------|------|-----|----------|----------|
+| **Our GoPro System** | **$250-625** | **94-122°** | **1-5 arcmin** | **Portable astro, education** |
+| **Our ASI585MC System** | **$724-1,229** | **220°** | **5-10 arcmin** | **All-sky, meteor detection** |
+| Star Adventurer 2i | $400 | Lens dependent | 5 arcmin/hr | Portable astrophotography |
+| iOptron SkyGuider Pro | $500 | Lens dependent | 3.5 arcmin/hr | Portable astrophotography |
+| Commercial All-Sky Camera | $2,000-5,000 | 180° | 10-30 arcmin | Weather monitoring |
+| SBIG AllSky-340 | $3,500 | 185° | ~15 arcmin | All-sky imaging |
+| Celestron CGEM II | $2,000 | Lens dependent | 3 arcmin RMS | Serious amateur |
+| Software Bisque MX | $5,000 | Lens dependent | 1 arcmin | Semi-professional |
+| Sinclair ST-16RT2 | $50,000 | 20° | 2-7 arcsec | CubeSat missions |
+| Ball CT-2020 | $300,000 | 20° | 2 arcsec | Spacecraft |
 
 ### 8.3 Cost-Effectiveness Ratio
 
@@ -907,22 +1199,55 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 13. NightSkyPix. "Astrophotography Stacking Software Guide." https://nightskypix.com/astrophotography-stacking-software/
 
+### Hardware References
+
+14. ZWO Astronomy. "ASI585MC/MM Pro Camera Specifications." https://www.zwoastro.com/product/asi585mc-mm-pro/
+
+15. Entaniya Co., Ltd. "Entaniya Fisheye M12 220 S-Mount Lens." https://products.entaniya.co.jp/en/list/m12-s-mount-super-wide-fisheye-lens-series/entaniya-fisheye-m12-220-s-mount/
+
+16. Agena AstroProducts. "ZWO ASI585MC Pro Specifications." https://agenaastro.com/zwo-asi585mc-pro-cooled-color-astronomy-imaging-camera.html
+
+17. Sony Semiconductor Solutions. "IMX585 STARVIS 2 CMOS Image Sensor." Sony Corporation.
+
+18. AllSkyCams. "All-Sky Camera Systems and Meteor Detection." https://www.allskycams.com/
+
 ---
 
 ## Appendix A: System Requirements
 
-### A.1 Minimum Hardware
+### A.1 Configuration 1: GoPro-Based System
+
+**Minimum Hardware:**
 - GoPro Hero 5 Black or newer (Hero 7+ recommended)
 - 4-core CPU, 2.0 GHz
 - 8 GB RAM
 - 20 GB free storage
 
-### A.2 Recommended Hardware
+**Recommended Hardware:**
 - GoPro Hero 7 Black or newer
 - 8-core CPU, 3.0+ GHz
 - 16 GB RAM
 - SSD with 100+ GB free
 - NVIDIA GPU with CUDA support
+
+### A.2 Configuration 2: ASI585MC + Entaniya All-Sky System
+
+**Required Hardware:**
+- ZWO ASI585MC or ASI585MC Pro camera
+- Entaniya M12 220 fisheye lens (or compatible M12 mount lens)
+- USB 3.0 port (USB 3.1 Gen 1 or better recommended)
+- 8-core CPU, 3.0+ GHz (for real-time processing)
+- 16 GB RAM minimum (32 GB for video capture)
+- SSD with 500+ GB free (high-speed video capture)
+- 12V DC power supply (for ASI585MC Pro cooling)
+
+**Recommended Hardware:**
+- ZWO ASI585MC Pro (cooled version for reduced thermal noise)
+- Active USB 3.0 cable (5m for outdoor installations)
+- Weather-resistant enclosure with dew heater
+- Dedicated capture computer (Intel NUC or similar)
+- NVIDIA GPU with CUDA support for acceleration
+- UPS for uninterrupted operation
 
 ### A.3 Software Dependencies
 - Python 3.10+
@@ -1005,6 +1330,24 @@ output:
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 1.1*
 *Last Updated: January 2026*
 *License: MIT*
+
+---
+
+## Changelog
+
+### Version 1.1 (January 2026)
+- Added enhanced configuration: ZWO ASI585MC + Entaniya M12 220 all-sky system
+- Added detailed specifications for Sony IMX585 STARVIS 2 sensor
+- Added Entaniya fisheye lens optical characteristics and projection model
+- Expanded cost comparison to include all-sky camera systems
+- Added meteor detection and satellite tracking applications
+- Updated system requirements for both configurations
+- Added hardware references section
+
+### Version 1.0 (January 2026)
+- Initial release with GoPro Hero 7 Black configuration
+- Complete software pipeline documentation
+- Literature review and commercial analysis
