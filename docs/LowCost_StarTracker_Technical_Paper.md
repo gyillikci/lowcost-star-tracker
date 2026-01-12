@@ -822,6 +822,12 @@ Our system includes a real-time 3D Celestial Sphere Viewer that visualizes the c
 - **Educational** demonstration of celestial mechanics
 - **Real-time monitoring** of pointing direction
 
+**Figure 1: 3D Celestial Sphere Viewer with Camera + IMU Setup**
+
+![3D Celestial Sphere Viewer showing camera FOV projected onto star field, with live camera feed from rigidly coupled camera and IMU (Orange Cube)](Screenshot%202026-01-11%20155616.png)
+
+*The screenshot shows the 3D Celestial Sphere Viewer (left) displaying the camera's field of view (green trapezoid) projected onto the celestial sphere with stars. The camera feed (right) shows the physical setup with the camera and Orange Cube IMU held together, demonstrating the rigid coupling required for accurate sensor fusion.*
+
 #### 6.4.1 Visualization Components
 
 ```
@@ -1085,7 +1091,7 @@ The camera+IMU sensor fusion provides critical advantages:
 
 A demonstration of the camera+IMU fusion system is available:
 
-**YouTube Short:** https://youtube.com/shorts/96TbY9RKdZE
+**YouTube Short:** [▶️ Watch Demo Video](https://youtube.com/shorts/96TbY9RKdZE)
 
 The video shows:
 1. Physical setup with camera and IMU (orange cube) rigidly coupled
@@ -1614,7 +1620,7 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 20. Madgwick, S. O. H. (2010). "An Efficient Orientation Filter for Inertial and Inertial/Magnetic Sensor Arrays." Technical Report, University of Bristol.
 
-21. Low-Cost Star Tracker Project. "Camera + IMU Sensor Fusion Demonstration." YouTube. https://youtube.com/shorts/96TbY9RKdZE
+21. Low-Cost Star Tracker Project. "Camera + IMU Sensor Fusion Demonstration." YouTube. [https://youtube.com/shorts/96TbY9RKdZE](https://youtube.com/shorts/96TbY9RKdZE)
 
 ---
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Convert Markdown to DOCX format.
+Convert Markdown to DOCX format with image and hyperlink support.
 """
 
 import re
+import urllib.parse
 from pathlib import Path
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
@@ -43,22 +44,15 @@ def add_hyperlink(paragraph, text, url):
     return hyperlink
 
 
-def process_inline_formatting(paragraph, text):
+def process_inline_formatting(paragraph, text, doc_dir):
     """Process inline markdown formatting like bold, italic, code, links."""
     # Pattern for links: [text](url)
     link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
-    # Pattern for bold: **text** or __text__
-    bold_pattern = r'\*\*([^*]+)\*\*|__([^_]+)__'
-    # Pattern for italic: *text* or _text_
-    italic_pattern = r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)|(?<!_)_(?!_)([^_]+)_(?!_)'
-    # Pattern for inline code: `code`
-    code_pattern = r'`([^`]+)`'
 
-    # Simple approach: just add text with basic formatting
+    # Split text by links and process
     parts = []
     last_end = 0
 
-    # Find all links first
     for match in re.finditer(link_pattern, text):
         if match.start() > last_end:
             parts.append(('text', text[last_end:match.start()]))
@@ -71,21 +65,33 @@ def process_inline_formatting(paragraph, text):
     for part in parts:
         if part[0] == 'text':
             content = part[1]
-            # Process bold
-            content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)
-            content = re.sub(r'__([^_]+)__', r'\1', content)
-            # Process italic
-            content = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'\1', content)
-            # Process code
-            content = re.sub(r'`([^`]+)`', r'\1', content)
-            if content:
-                paragraph.add_run(content)
+            # Process bold - find **text** patterns
+            bold_parts = re.split(r'\*\*([^*]+)\*\*', content)
+            for i, bp in enumerate(bold_parts):
+                if i % 2 == 1:  # Bold text
+                    run = paragraph.add_run(bp)
+                    run.bold = True
+                elif bp:  # Regular text
+                    # Process inline code
+                    code_parts = re.split(r'`([^`]+)`', bp)
+                    for j, cp in enumerate(code_parts):
+                        if j % 2 == 1:  # Code text
+                            run = paragraph.add_run(cp)
+                            run.font.name = 'Courier New'
+                            run.font.size = Pt(9)
+                        elif cp:
+                            paragraph.add_run(cp)
         elif part[0] == 'link':
-            add_hyperlink(paragraph, part[1], part[2])
+            link_text = part[1]
+            link_url = part[2]
+            add_hyperlink(paragraph, link_text, link_url)
 
 
 def convert_md_to_docx(md_path, docx_path):
     """Convert a markdown file to DOCX format."""
+
+    md_path = Path(md_path)
+    doc_dir = md_path.parent
 
     # Read markdown content
     with open(md_path, 'r', encoding='utf-8') as f:
@@ -93,9 +99,6 @@ def convert_md_to_docx(md_path, docx_path):
 
     # Create document
     doc = Document()
-
-    # Set up styles
-    styles = doc.styles
 
     # Process content line by line
     lines = content.split('\n')
@@ -132,9 +135,41 @@ def convert_md_to_docx(md_path, docx_path):
             i += 1
             continue
 
+        # Handle images: ![alt](path)
+        img_match = re.match(r'^!\[([^\]]*)\]\(([^)]+)\)', line)
+        if img_match:
+            alt_text = img_match.group(1)
+            img_path = img_match.group(2)
+            # Decode URL encoding (e.g., %20 -> space)
+            img_path = urllib.parse.unquote(img_path)
+
+            # Resolve relative path
+            full_img_path = doc_dir / img_path
+
+            if full_img_path.exists():
+                # Add image
+                para = doc.add_paragraph()
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = para.add_run()
+                run.add_picture(str(full_img_path), width=Inches(6.0))
+
+                # Add caption if alt text exists
+                if alt_text:
+                    caption = doc.add_paragraph()
+                    caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = caption.add_run(f"Figure: {alt_text}")
+                    run.italic = True
+                    run.font.size = Pt(10)
+            else:
+                # Image not found, add placeholder text
+                para = doc.add_paragraph()
+                para.add_run(f"[Image not found: {img_path}]")
+
+            i += 1
+            continue
+
         # Handle tables
         if '|' in line and not line.startswith('```'):
-            # Check if it's a table row
             stripped = line.strip()
             if stripped.startswith('|') and stripped.endswith('|'):
                 if not in_table:
@@ -156,7 +191,6 @@ def convert_md_to_docx(md_path, docx_path):
         if in_table and ('|' not in line or line.startswith('```')):
             in_table = False
             if table_rows:
-                # Create table
                 num_cols = max(len(row) for row in table_rows)
                 table = doc.add_table(rows=len(table_rows), cols=num_cols)
                 table.style = 'Table Grid'
@@ -170,7 +204,7 @@ def convert_md_to_docx(md_path, docx_path):
                             cell_text = re.sub(r'`([^`]+)`', r'\1', cell_text)
                             cell.text = cell_text
 
-                doc.add_paragraph()  # Add space after table
+                doc.add_paragraph()
                 table_rows = []
 
         # Handle horizontal rules
@@ -198,7 +232,7 @@ def convert_md_to_docx(md_path, docx_path):
         if line.strip().startswith('- ') or line.strip().startswith('* '):
             text = line.strip()[2:]
             para = doc.add_paragraph(style='List Bullet')
-            process_inline_formatting(para, text)
+            process_inline_formatting(para, text, doc_dir)
             i += 1
             continue
 
@@ -207,14 +241,23 @@ def convert_md_to_docx(md_path, docx_path):
         if match:
             text = match.group(2)
             para = doc.add_paragraph(style='List Number')
-            process_inline_formatting(para, text)
+            process_inline_formatting(para, text, doc_dir)
+            i += 1
+            continue
+
+        # Handle italic text (lines starting with *)
+        if line.strip().startswith('*') and not line.strip().startswith('**') and line.strip().endswith('*'):
+            text = line.strip()[1:-1]
+            para = doc.add_paragraph()
+            run = para.add_run(text)
+            run.italic = True
             i += 1
             continue
 
         # Handle regular paragraphs
         if line.strip():
             para = doc.add_paragraph()
-            process_inline_formatting(para, line)
+            process_inline_formatting(para, line, doc_dir)
 
         i += 1
 
