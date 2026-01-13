@@ -3,7 +3,7 @@
 ## Technical Paper
 
 **Authors:** Low-Cost Star Tracker Development Team
-**Version:** 1.3
+**Version:** 1.4
 **Date:** January 2026
 
 ---
@@ -1340,6 +1340,84 @@ A low-pass Butterworth filter removes high-frequency noise:
 - **Order:** 4th order
 - **Phase:** Zero-phase (forward-backward filtering)
 
+#### 8.1.5 Sensor Fusion Architecture
+
+The system implements a **complementary filter** approach for fusing gyroscope and accelerometer data, chosen for computational efficiency and suitability for short observation periods.
+
+**Filter Design:**
+
+```
+q_fused = α · q_gyro + (1-α) · q_accel_correction
+```
+
+Where:
+- `α = τ / (τ + dt)` is the filter coefficient
+- `τ = 2.0 seconds` (time constant, tunable)
+- `dt = 1/200 = 0.005 seconds` (sample period at 200 Hz)
+
+**Accelerometer Correction (Tilt-Only):**
+
+The accelerometer provides gravity vector direction for roll/pitch correction:
+
+```
+g_measured = [ax, ay, az] / |[ax, ay, az]|
+g_reference = [0, 0, -1]  # Gravity in world frame
+
+roll  = atan2(ay, az)
+pitch = atan2(-ax, sqrt(ay² + az²))
+```
+
+**Magnetometer Usage:**
+
+For the GoPro configuration, the magnetometer is **not used** due to:
+1. Local magnetic disturbances in typical environments
+2. Sufficient accuracy from gyro-only integration for short observations
+3. Calibration complexity for consumer hardware
+
+For extended observations (>5 minutes), star-aided drift correction is recommended over magnetometer fusion.
+
+**Quaternion Normalization:**
+
+Quaternions are normalized after every integration step:
+
+```python
+def normalize_quaternion(q):
+    norm = np.sqrt(q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2)
+    if norm < 1e-10:
+        return np.array([1.0, 0.0, 0.0, 0.0])
+    return q / norm
+```
+
+Normalization threshold: `||q|| - 1.0 > 1e-6` triggers renormalization.
+
+**Noise Parameters (GoPro Hero 7 Black):**
+
+| Parameter | Value | Units |
+|-----------|-------|-------|
+| Gyroscope noise density | 0.007 | °/s/√Hz |
+| Gyroscope bias stability | 3.0 | °/hour |
+| Accelerometer noise density | 150 | µg/√Hz |
+| Sample rate | 200 | Hz |
+
+**Error Accumulation Model:**
+
+For gyroscope-only integration, attitude error grows as:
+
+```
+σ_angle(t) ≈ σ_ARW · √t + σ_bias · t
+```
+
+Where:
+- `σ_ARW = 0.007 °/s/√Hz` (Angle Random Walk)
+- `σ_bias = 3.0 °/hour` (bias stability)
+
+For a 60-second observation:
+- ARW contribution: ~0.05°
+- Bias contribution: ~0.05°
+- **Total expected error: ~0.1° (6 arcminutes)**
+
+This is acceptable for frame alignment but insufficient for absolute astrometry without star-aided correction.
+
 ### 8.2 Motion Compensation
 
 #### 8.2.1 Homography-Based Transformation
@@ -1453,13 +1531,13 @@ Random Sample Consensus eliminates outlier matches:
 
 ### 8.5 Quality Assessment
 
-#### 8.5.1 Hard Limits (Immediate Rejection)
+#### 9.5.1 Hard Limits (Immediate Rejection)
 
 - Minimum stars: 10 (insufficient for alignment)
 - Maximum FWHM: 8.0 pixels (blurred/trailing)
 - Maximum background noise: 50.0 (overexposed/dawn)
 
-#### 8.5.2 Quality Score Computation
+#### 9.5.2 Quality Score Computation
 
 ```
 Q = w_stars × S_stars + w_fwhm × S_fwhm + w_bg × S_bg
@@ -1510,7 +1588,7 @@ This prioritizes sharp, star-rich frames over degraded ones.
 
 ## 9. Performance Analysis
 
-### 8.1 Signal-to-Noise Ratio Improvement
+### 9.1 Signal-to-Noise Ratio Improvement
 
 For N stacked frames with independent noise:
 
@@ -1525,7 +1603,7 @@ SNR_stacked = SNR_single × √N
 | 60 seconds | 30 fps | 1800 | 42.4× |
 | 120 seconds | 30 fps | 3600 | 60.0× |
 
-### 8.2 Limiting Magnitude
+### 9.2 Limiting Magnitude
 
 The limiting magnitude improvement follows:
 
@@ -1540,7 +1618,7 @@ The limiting magnitude improvement follows:
 | 900 | 3.7 | ~9.7-10.7 mag |
 | 3600 | 4.4 | ~10.4-11.4 mag |
 
-### 8.3 Angular Resolution
+### 9.3 Angular Resolution
 
 Limited by:
 1. **Optical diffraction:** θ = 1.22 λ/D ≈ 2.5 arcmin (for f/2.8, 3mm aperture)
@@ -1549,7 +1627,7 @@ Limited by:
 
 Practical resolution: **1-2 arcminutes**
 
-### 8.4 Processing Performance
+### 9.4 Processing Performance
 
 Benchmarks on Intel i7-10700 (8-core, 2.9 GHz):
 
@@ -1564,20 +1642,20 @@ Benchmarks on Intel i7-10700 (8-core, 2.9 GHz):
 | Image Stacking | 20-40 s | 4 GB |
 | **Total** | **3-6 minutes** | **4 GB peak** |
 
-### 8.5 Accuracy Metrics
+### 9.5 Accuracy Metrics
 
-#### 8.5.1 Pointing Accuracy
+#### 9.5.1 Pointing Accuracy
 
 Without plate-solving: **Not applicable** (no absolute orientation)
 With future plate-solving integration: **~1-5 arcminutes** (estimated)
 
-#### 8.5.2 Tracking Stability
+#### 9.5.2 Tracking Stability
 
 Gyroscope-based compensation accuracy:
 - Short-term (< 1 min): < 0.5 pixel RMS
 - Long-term (> 1 min): 1-3 pixel drift (gyro bias)
 
-#### 8.5.3 Alignment Accuracy
+#### 9.5.3 Alignment Accuracy
 
 Sub-pixel alignment via star matching:
 - Translation accuracy: 0.1-0.2 pixels
@@ -1587,7 +1665,7 @@ Sub-pixel alignment via star matching:
 
 ## 10. Cost Comparison
 
-### 9.1 Our Low-Cost Systems
+### 10.1 Our Low-Cost Systems
 
 #### Configuration 1: GoPro-Based System (Portable)
 
@@ -1770,47 +1848,69 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 4. Kolomenkin, M., Pollak, S., Shimshoni, I., & Lindenbaum, M. (2008). "Geometric Voting Algorithm for Star Trackers." IEEE Transactions on Aerospace and Electronic Systems, 44(2), 441-456.
 
-5. Rijlaarsdam, D., Yous, H.,";"; J., &amp; Gill, E. (2020). "A Survey of Lost-in-Space Star Identification Algorithms Since 2009." Sensors, 20(9), 2579.
+5. Rijlaarsdam, D., Yous, H.,"; J., & Gill, E. (2020). "A Survey of Lost-in-Space Star Identification Algorithms Since 2009." Sensors, 20(9), 2579.
 
 6. Lang, D., Hogg, D. W., Mierle, K., Blanton, M., & Roweis, S. (2010). "Astrometry.net: Blind Astrometric Calibration of Arbitrary Astronomical Images." The Astronomical Journal, 139(5), 1782-1800.
 
+7. Nabi, M., Khosravi, M., & Abrishami, S. (2021). "An Improved Star Identification Algorithm Based on Triangle Pattern." Journal of King Saud University - Computer and Information Sciences, 34(6), 3345-3352.
+
+8. Leake, C., Johnston, H., Smith, L., & Mortari, D. (2020). "Non-Dimensional Star Identification for Un-Calibrated Star Cameras." Sensors, 20(10), 2697.
+
+9. Markley, F. L. (2003). "Attitude Error Representations for Kalman Filtering." Journal of Guidance, Control, and Dynamics, 26(2), 311-317.
+
+10. Shuster, M. D., & Oh, S. D. (1981). "Three-Axis Attitude Determination from Vector Observations." Journal of Guidance and Control, 4(1), 70-77.
+
+11. Ozyurt, Y. & Karatas, E. (2024). "A Lost-in-Space Star Identification Algorithm Based on Regularized Dictionary Learning." Acta Astronautica, 215, 45-56.
+
+12. Schulz, S., Haghparast, M., & Lindblad, J. (2021). "A UVM-SystemC Framework for Star Tracker Verification." Sensors, 21(4), 1396.
+
+13. Hughes, C., Denny, P., Jones, E., & Glavin, M. (2010). "Accuracy of Fish-Eye Lens Models." Applied Optics, 49(17), 3338-3347.
+
+14. Richardson, W. H. (1972). "Bayesian-Based Iterative Method of Image Restoration." Journal of the Optical Society of America, 62(1), 55-59.
+
+15. Lucy, L. B. (1974). "An Iterative Technique for the Rectification of Observed Distributions." The Astronomical Journal, 79(6), 745-754.
+
 ### Technical References
 
-7. GoPro, Inc. (2023). "GPMF Introduction." GitHub Repository. https://github.com/gopro/gpmf-parser
+16. GoPro, Inc. (2023). "GPMF Introduction." GitHub Repository. https://github.com/gopro/gpmf-parser
 
-8. Gyroflow Developers. (2024). "Gyroflow: Video Stabilization Using Gyroscope Data." https://gyroflow.xyz/
+17. Gyroflow Developers. (2024). "Gyroflow: Video Stabilization Using Gyroscope Data." https://gyroflow.xyz/
 
-9. OpenCV Team. (2024). "OpenCV: Open Source Computer Vision Library." https://opencv.org/
+18. OpenCV Team. (2024). "OpenCV: Open Source Computer Vision Library." https://opencv.org/
 
-10. Astropy Collaboration. (2022). "The Astropy Project: Building an Open-science Project and Status of the v5.0 Core Package." The Astrophysical Journal, 935(2), 167.
+19. Astropy Collaboration. (2022). "The Astropy Project: Building an Open-science Project and Status of the v5.0 Core Package." The Astrophysical Journal, 935(2), 167.
 
 ### Online Resources
 
-11. Scott's Astronomy Page. "Astrophotography with a GoPro." https://scottsastropage.com/astrophotography-with-a-gopro/
+20. Scott's Astronomy Page. "Astrophotography with a GoPro." https://scottsastropage.com/astrophotography-with-a-gopro/
 
-12. Cloudy Nights. "Use Your GoPro for Widefield Astrophotography." https://www.cloudynights.com/
+21. Cloudy Nights. "Use Your GoPro for Widefield Astrophotography." https://www.cloudynights.com/
 
-13. NightSkyPix. "Astrophotography Stacking Software Guide." https://nightskypix.com/astrophotography-stacking-software/
+22. NightSkyPix. "Astrophotography Stacking Software Guide." https://nightskypix.com/astrophotography-stacking-software/
 
 ### Hardware References
 
-14. ZWO Astronomy. "ASI585MC/MM Pro Camera Specifications." https://www.zwoastro.com/product/asi585mc-mm-pro/
+23. ZWO Astronomy. "ASI585MC/MM Pro Camera Specifications." https://www.zwoastro.com/product/asi585mc-mm-pro/
 
-15. Entaniya Co., Ltd. "Entaniya Fisheye M12 220 S-Mount Lens." https://products.entaniya.co.jp/en/list/m12-s-mount-super-wide-fisheye-lens-series/entaniya-fisheye-m12-220-s-mount/
+24. Entaniya Co., Ltd. "Entaniya Fisheye M12 220 S-Mount Lens." https://products.entaniya.co.jp/en/list/m12-s-mount-super-wide-fisheye-lens-series/entaniya-fisheye-m12-220-s-mount/
 
-16. Agena AstroProducts. "ZWO ASI585MC Pro Specifications." https://agenaastro.com/zwo-asi585mc-pro-cooled-color-astronomy-imaging-camera.html
+25. Agena AstroProducts. "ZWO ASI585MC Pro Specifications." https://agenaastro.com/zwo-asi585mc-pro-cooled-color-astronomy-imaging-camera.html
 
-17. Sony Semiconductor Solutions. "IMX585 STARVIS 2 CMOS Image Sensor." Sony Corporation.
+26. Sony Semiconductor Solutions. "IMX585 STARVIS 2 CMOS Image Sensor." Sony Corporation.
 
-18. AllSkyCams. "All-Sky Camera Systems and Meteor Detection." https://www.allskycams.com/
+27. AllSkyCams. "All-Sky Camera Systems and Meteor Detection." https://www.allskycams.com/
 
 ### Sensor Fusion References
 
-19. Laidig, D., & Seel, T. (2023). "VQF: Highly Accurate IMU Orientation Estimation with Bias Estimation and Magnetic Disturbance Rejection." Information Fusion, 91, 187-204.
+28. Laidig, D., & Seel, T. (2023). "VQF: Highly Accurate IMU Orientation Estimation with Bias Estimation and Magnetic Disturbance Rejection." Information Fusion, 91, 187-204.
 
-20. Madgwick, S. O. H. (2010). "An Efficient Orientation Filter for Inertial and Inertial/Magnetic Sensor Arrays." Technical Report, University of Bristol.
+29. Madgwick, S. O. H. (2010). "An Efficient Orientation Filter for Inertial and Inertial/Magnetic Sensor Arrays." Technical Report, University of Bristol.
 
-21. Low-Cost Star Tracker Project. "Camera + IMU Sensor Fusion Demonstration." YouTube. [https://youtube.com/shorts/96TbY9RKdZE](https://youtube.com/shorts/96TbY9RKdZE)
+30. Low-Cost Star Tracker Project. "Camera + IMU Sensor Fusion Demonstration." YouTube. [https://youtube.com/shorts/96TbY9RKdZE](https://youtube.com/shorts/96TbY9RKdZE)
+
+### Motion Deblur References
+
+31. Wiener, N. (1949). "Extrapolation, Interpolation, and Smoothing of Stationary Time Series." MIT Press.
 
 ---
 
