@@ -3,7 +3,7 @@
 ## Technical Paper
 
 **Authors:** Low-Cost Star Tracker Development Team
-**Version:** 1.4
+**Version:** 1.5
 **Date:** January 2026
 
 ---
@@ -1746,7 +1746,104 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 
 ## 11. Results and Discussion
 
-### 12.1 Advantages of Our Approach
+### 11.1 Phase 1 Validation Results
+
+A comprehensive validation framework was developed to quantitatively verify the system's core algorithms using synthetic data. Four critical tests were conducted with the following results:
+
+**Figure 11.1: Validation Summary**
+
+![Validation Summary](images/validation/validation_summary.png)
+
+#### 11.1.1 Centroid Accuracy Validation
+
+**Objective:** Verify sub-pixel star position measurement accuracy.
+
+**Methodology:** 10 trials × 50 stars with known positions, measuring detection and centroid error.
+
+**Figure 11.2: Centroid Accuracy Results**
+
+![Centroid Accuracy Results](images/validation/centroid_accuracy_validation.png)
+
+| Metric | Result | Target | Status |
+|--------|--------|--------|--------|
+| RMS Position Error | **0.130 pixels** | < 0.5 pixels | **PASS** |
+| Detection Rate | **99.6%** | > 90% | **PASS** |
+| False Positive Rate | **0.0%** | < 10% | **PASS** |
+
+**Analysis:** The centroid detection achieves excellent sub-pixel accuracy (0.130 pixels RMS), translating to approximately 0.2 arcminutes angular accuracy at typical plate scales. The 99.6% detection rate with zero false positives demonstrates robust star identification.
+
+#### 11.1.2 SNR Scaling Verification
+
+**Objective:** Verify that signal-to-noise ratio improves as √N with frame stacking.
+
+**Methodology:** Measured SNR for 1, 4, 9, 16, 25, and 36 stacked frames.
+
+**Figure 11.3: SNR Scaling Results**
+
+![SNR Scaling Results](images/validation/snr_scaling_validation.png)
+
+| Frames | Measured Improvement | Theoretical (√N) | Deviation |
+|--------|---------------------|------------------|-----------|
+| 4 | 2.01× | 2.00× | +0.5% |
+| 9 | 3.00× | 3.00× | 0.0% |
+| 16 | 4.00× | 4.00× | 0.0% |
+| 25 | 4.99× | 5.00× | -0.2% |
+| 36 | 5.96× | 6.00× | -0.7% |
+
+**Correlation with √N model: 0.9998**
+
+**Analysis:** The measured SNR improvement follows theoretical √N scaling with near-perfect correlation. This validates that the stacking algorithm correctly combines independent frames and that noise sources are uncorrelated. Practical implication: 36 frames provide ~6× SNR improvement, equivalent to ~2 magnitude gain.
+
+#### 11.1.3 Processing Performance Benchmarks
+
+**Objective:** Assess real-time processing feasibility at different resolutions.
+
+**Figure 11.4: Processing Performance Results**
+
+![Processing Performance Results](images/validation/processing_performance_validation.png)
+
+| Resolution | Star Detection | 10-Frame Stack | Detection FPS |
+|------------|----------------|----------------|---------------|
+| 640×480 | 188 ms | 14 ms | 5.3 fps |
+| 1280×720 | 1,218 ms | 79 ms | 0.8 fps |
+| 1920×1080 | 5,448 ms | 179 ms | 0.2 fps |
+
+**Analysis:** The current Python/NumPy implementation is optimized for accuracy rather than speed. While not suitable for real-time HD processing, performance is acceptable for offline post-processing workflows. Optimization paths include OpenCV acceleration (10× improvement expected) and GPU implementation (100× improvement possible).
+
+#### 11.1.4 Motion Compensation Effectiveness
+
+**Objective:** Validate that gyroscope-based compensation recovers image quality after camera motion.
+
+**Methodology:** Simulated 15-pixel camera motion during exposure, then applied compensation.
+
+**Figure 11.5: Motion Compensation Results**
+
+![Motion Compensation Results](images/validation/motion_compensation_validation.png)
+
+| Condition | FWHM (pixels) | Stars Detected |
+|-----------|---------------|----------------|
+| Reference (no motion) | 2.50 | 29 |
+| Blurred (15px motion) | 4.80 | 28 |
+| **Compensated** | **2.50** | **29** |
+
+**Detection Recovery Rate: 100%**
+
+**Analysis:** Motion compensation is highly effective, fully restoring image quality after 15-pixel camera motion. The FWHM returns to reference value and all stars are recovered. This validates the core gyroscope-based stabilization approach.
+
+#### 11.1.5 Validation Summary
+
+| Test | Result | Confidence |
+|------|--------|------------|
+| Centroid Accuracy | **PASS** | High |
+| SNR Scaling | **PASS** | High |
+| Processing Performance | **FAIL*** | Medium |
+| Motion Compensation | **PASS** | High |
+
+*Processing performance meets requirements for offline use but requires optimization for real-time applications.
+
+**Overall Assessment:** The validation demonstrates that core algorithms achieve their design objectives. The system is ready for real-world testing with actual hardware.
+
+### 11.2 Advantages of Our Approach
 
 1. **Extreme Cost Reduction:** 95-99% cost savings compared to commercial alternatives
 2. **Portability:** Complete system weighs < 1 kg
@@ -1755,7 +1852,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 5. **Software Upgradability:** Algorithms can be improved without hardware changes
 6. **Open Source:** Community-driven improvements and transparency
 
-### 12.2 Limitations
+### 11.3 Limitations
 
 1. **Limited Light Gathering:** Small sensor and lens aperture
 2. **Fixed Focal Length:** No zoom capability
@@ -1764,7 +1861,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 5. **No Absolute Orientation:** Cannot determine celestial coordinates without plate-solving
 6. **Environmental Sensitivity:** Consumer hardware not rated for extreme conditions
 
-### 11.3 Comparison with Mechanical Tracking
+### 11.4 Comparison with Mechanical Tracking
 
 | Aspect | Gyro + Stacking | Equatorial Mount |
 |--------|-----------------|------------------|
@@ -1776,7 +1873,7 @@ vs. Spacecraft tracker: (300000 - 350) / 300000 = 99.9% savings
 | Setup time | Minutes | 15-30 min |
 | Cost | Low | Medium-High |
 
-### 10.4 Suitable Applications
+### 11.5 Suitable Applications
 
 **Ideal for:**
 - Wide-field Milky Way photography
@@ -1811,14 +1908,14 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 ### 12.2 Future Work
 
-#### 11.2.1 Short-Term Improvements
+#### 12.2.1 Short-Term Improvements
 
 - **Plate-Solving Integration:** Add astrometric calibration for absolute celestial coordinates
 - **Dark Frame Calibration:** Implement hot pixel removal and thermal noise correction
 - **Flat Field Correction:** Compensate for lens vignetting and sensor non-uniformity
 - **GPU Acceleration:** CUDA/OpenCL implementation for real-time processing
 
-#### 11.2.2 Medium-Term Goals
+#### 12.2.2 Medium-Term Goals
 
 - **Additional Camera Support:** DJI, Insta360, smartphone integration
 - **Real-Time Preview:** Live stacking and quality feedback
@@ -1826,7 +1923,7 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 - **Web Interface:** Browser-based processing and visualization
 - **Mobile App:** Direct processing on smartphones
 
-#### 11.2.3 Long-Term Vision
+#### 12.2.3 Long-Term Vision
 
 - **CubeSat Integration:** Adapt algorithms for space applications
 - **Multi-Camera Arrays:** Synchronized capture for wider fields
