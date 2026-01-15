@@ -15,6 +15,8 @@ Usage:
     python celestial_sphere_3d.py --witmotion /dev/rfcomm0  # With WitMotion WT9011DCL (Bluetooth)
     python celestial_sphere_3d.py --witmotion /dev/ttyUSB0  # With WitMotion WT9011DCL (USB)
     python celestial_sphere_3d.py --camera 0                # With USB camera feed
+    python celestial_sphere_3d.py --video allsky.mp4        # Play video file instead of camera
+    python celestial_sphere_3d.py --video allsky.mp4 --loop # Loop video playback
 
 Controls:
     Left Mouse Drag  - Rotate view around sphere
@@ -23,7 +25,11 @@ Controls:
     G                - Toggle grid lines
     C                - Toggle constellation lines
     F                - Toggle camera FOV display
-    Space            - Pause/Resume attitude updates
+    Space            - Pause/Resume attitude updates (or video playback)
+    [ / ]            - Decrease/Increase video playback speed
+    ,                - Step back one frame (when paused)
+    .                - Step forward one frame (when paused)
+    Home             - Restart video from beginning
     Q / ESC          - Quit
 """
 
@@ -148,6 +154,18 @@ class CelestialSphere3D:
         # Mock mode
         self.use_mock_camera = False
         self.mock_frame_counter = 0
+
+        # Video file playback
+        self.video_file = None
+        self.video_capture = None
+        self.video_playing = True
+        self.video_loop = False
+        self.video_speed = 1.0  # Playback speed multiplier
+        self.video_frame_count = 0
+        self.video_total_frames = 0
+        self.video_fps = 30.0
+        self.video_current_frame = 0
+        self.video_last_time = None
 
         # Calibration data (loaded from file)
         self.calibration_data = None
@@ -888,6 +906,94 @@ class CelestialSphere3D:
         glMatrixMode(GL_MODELVIEW)
         glPopMatrix()
 
+    def draw_video_status(self):
+        """Draw video playback status overlay."""
+        if self.video_capture is None:
+            return
+
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        glOrtho(0, self.width, self.height, 0, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+
+        glDisable(GL_LIGHTING)
+        glDisable(GL_DEPTH_TEST)
+
+        # Video status background (top right)
+        status_width = 200
+        status_height = 50
+        glColor4f(0.0, 0.0, 0.0, 0.6)
+        glBegin(GL_QUADS)
+        glVertex2f(self.width - status_width - 10, 10)
+        glVertex2f(self.width - 10, 10)
+        glVertex2f(self.width - 10, 10 + status_height)
+        glVertex2f(self.width - status_width - 10, 10 + status_height)
+        glEnd()
+
+        # Progress bar
+        progress = self.video_current_frame / max(1, self.video_total_frames)
+        bar_width = status_width - 20
+        bar_x = self.width - status_width
+
+        # Background bar
+        glColor4f(0.3, 0.3, 0.3, 0.8)
+        glBegin(GL_QUADS)
+        glVertex2f(bar_x, 40)
+        glVertex2f(bar_x + bar_width, 40)
+        glVertex2f(bar_x + bar_width, 48)
+        glVertex2f(bar_x, 48)
+        glEnd()
+
+        # Progress fill
+        if self.video_playing:
+            glColor4f(0.2, 0.8, 0.2, 0.9)  # Green when playing
+        else:
+            glColor4f(0.8, 0.8, 0.2, 0.9)  # Yellow when paused
+        glBegin(GL_QUADS)
+        glVertex2f(bar_x, 40)
+        glVertex2f(bar_x + bar_width * progress, 40)
+        glVertex2f(bar_x + bar_width * progress, 48)
+        glVertex2f(bar_x, 48)
+        glEnd()
+
+        # Speed indicator bar
+        speed_center = bar_x + bar_width / 2
+        speed_bar = (self.video_speed - 1.0) / 7.0 * (bar_width / 2)  # -1 to 8x range
+
+        glColor4f(0.5, 0.5, 0.8, 0.8)
+        if speed_bar >= 0:
+            glBegin(GL_QUADS)
+            glVertex2f(speed_center, 25)
+            glVertex2f(speed_center + speed_bar, 25)
+            glVertex2f(speed_center + speed_bar, 33)
+            glVertex2f(speed_center, 33)
+            glEnd()
+        else:
+            glBegin(GL_QUADS)
+            glVertex2f(speed_center + speed_bar, 25)
+            glVertex2f(speed_center, 25)
+            glVertex2f(speed_center, 33)
+            glVertex2f(speed_center + speed_bar, 33)
+            glEnd()
+
+        # Center line for speed indicator
+        glColor4f(1.0, 1.0, 1.0, 0.5)
+        glBegin(GL_LINES)
+        glVertex2f(speed_center, 22)
+        glVertex2f(speed_center, 36)
+        glEnd()
+
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+
     def render(self):
         """Render the complete scene."""
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -909,6 +1015,7 @@ class CelestialSphere3D:
 
         # Draw 2D overlays
         self.draw_attitude_indicator()
+        self.draw_video_status()
         self.draw_help_text()
 
         pygame.display.flip()
@@ -934,7 +1041,12 @@ class CelestialSphere3D:
                 elif event.key == pygame.K_f:
                     self.show_fov = not self.show_fov
                 elif event.key == pygame.K_SPACE:
-                    self.paused = not self.paused
+                    if self.video_capture is not None:
+                        # Toggle video playback
+                        self.video_playing = not self.video_playing
+                        print(f"Video {'playing' if self.video_playing else 'paused'}")
+                    else:
+                        self.paused = not self.paused
                 elif event.key == pygame.K_s:
                     # Capture current frame to panorama
                     self.capture_frame_to_panorama()
@@ -978,6 +1090,39 @@ class CelestialSphere3D:
                     print(f"  Yaw offset: {self.yaw_offset:.1f}°")
                     print(f"  IMU yaw rate: {self.imu_yaw_rate:.2f}°/s")
                     print(f"  Optical yaw rate: {self.optical_yaw_rate:.2f}°/s")
+                    if self.video_capture is not None:
+                        time_pos = self.video_current_frame / self.video_fps if self.video_fps > 0 else 0
+                        print(f"Video status:")
+                        print(f"  Frame: {self.video_current_frame}/{self.video_total_frames}")
+                        print(f"  Time: {time_pos:.1f}s")
+                        print(f"  Speed: {self.video_speed:.1f}x")
+                        print(f"  Playing: {self.video_playing}")
+
+                # Video playback controls
+                elif event.key == pygame.K_LEFTBRACKET:
+                    # Decrease playback speed
+                    if self.video_capture is not None:
+                        self.video_speed = max(0.1, self.video_speed - 0.25)
+                        print(f"Video speed: {self.video_speed:.2f}x")
+                elif event.key == pygame.K_RIGHTBRACKET:
+                    # Increase playback speed
+                    if self.video_capture is not None:
+                        self.video_speed = min(8.0, self.video_speed + 0.25)
+                        print(f"Video speed: {self.video_speed:.2f}x")
+                elif event.key == pygame.K_COMMA:
+                    # Step back one frame
+                    if self.video_capture is not None:
+                        self.video_playing = False
+                        self.video_step(-1)
+                elif event.key == pygame.K_PERIOD:
+                    # Step forward one frame
+                    if self.video_capture is not None:
+                        self.video_playing = False
+                        self.video_step(1)
+                elif event.key == pygame.K_HOME:
+                    # Restart video
+                    if self.video_capture is not None:
+                        self.video_restart()
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left click
@@ -1214,14 +1359,146 @@ class CelestialSphere3D:
             print(f"Could not open camera {camera_index}")
             self.camera = None
             return
-        
+
         if resolution:
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
-        
+
         actual_w = int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_h = int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
         print(f"Camera resolution: {actual_w}x{actual_h}")
+
+    def start_video_file(self, video_path: str, loop: bool = False):
+        """
+        Start video file playback instead of camera.
+
+        Args:
+            video_path: Path to video file (MP4, AVI, etc.)
+            loop: Whether to loop the video when it ends
+        """
+        if not CV2_AVAILABLE:
+            print("OpenCV not available for video playback")
+            return False
+
+        self.video_file = video_path
+        self.video_loop = loop
+        self.video_capture = cv2.VideoCapture(video_path)
+
+        if not self.video_capture.isOpened():
+            print(f"Could not open video file: {video_path}")
+            self.video_capture = None
+            return False
+
+        # Get video properties
+        self.video_total_frames = int(self.video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
+        video_width = int(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        video_height = int(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        duration = self.video_total_frames / self.video_fps if self.video_fps > 0 else 0
+
+        print(f"\nVideo file loaded: {video_path}")
+        print(f"  Resolution: {video_width}x{video_height}")
+        print(f"  Frames: {self.video_total_frames}")
+        print(f"  FPS: {self.video_fps:.2f}")
+        print(f"  Duration: {duration:.1f} seconds ({duration/60:.1f} minutes)")
+        print(f"  Loop: {'Yes' if loop else 'No'}")
+
+        self.video_playing = True
+        self.video_current_frame = 0
+        self.video_last_time = time.time()
+
+        return True
+
+    def read_video_frame(self) -> np.ndarray:
+        """
+        Read the next frame from video file based on playback speed.
+
+        Returns:
+            Video frame or None if end of video
+        """
+        if self.video_capture is None:
+            return None
+
+        current_time = time.time()
+
+        # Handle paused state
+        if not self.video_playing:
+            # Just return the current frame without advancing
+            if self.camera_frame is not None:
+                return self.camera_frame
+            return None
+
+        # Calculate how many frames to advance based on playback speed
+        if self.video_last_time is not None:
+            dt = current_time - self.video_last_time
+            frames_to_advance = dt * self.video_fps * self.video_speed
+
+            if frames_to_advance < 1.0:
+                # Not time for next frame yet
+                if self.camera_frame is not None:
+                    return self.camera_frame
+                # But if we don't have a frame yet, get one
+
+        self.video_last_time = current_time
+
+        # Read the next frame
+        ret, frame = self.video_capture.read()
+
+        if not ret:
+            # End of video
+            if self.video_loop:
+                # Restart from beginning
+                self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                self.video_current_frame = 0
+                ret, frame = self.video_capture.read()
+                if not ret:
+                    return None
+                print("Video looped to beginning")
+            else:
+                print("Video playback ended")
+                self.video_playing = False
+                return self.camera_frame  # Return last frame
+
+        self.video_current_frame = int(self.video_capture.get(cv2.CAP_PROP_POS_FRAMES))
+        return frame
+
+    def video_seek(self, frame_number: int):
+        """Seek to a specific frame in the video."""
+        if self.video_capture is None:
+            return
+
+        frame_number = max(0, min(frame_number, self.video_total_frames - 1))
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        self.video_current_frame = frame_number
+
+        # Read the frame at this position
+        ret, frame = self.video_capture.read()
+        if ret:
+            self.camera_frame = frame
+            # Reset position since read advances it
+            self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+    def video_step(self, delta: int):
+        """Step forward or backward by delta frames (for frame-by-frame viewing)."""
+        if self.video_capture is None:
+            return
+
+        new_frame = self.video_current_frame + delta
+        new_frame = max(0, min(new_frame, self.video_total_frames - 1))
+        self.video_seek(new_frame)
+
+        time_pos = new_frame / self.video_fps if self.video_fps > 0 else 0
+        print(f"Frame {new_frame}/{self.video_total_frames} ({time_pos:.1f}s)")
+
+    def video_restart(self):
+        """Restart video from the beginning."""
+        if self.video_capture is None:
+            return
+
+        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.video_current_frame = 0
+        self.video_playing = True
+        print("Video restarted")
 
     def compute_optical_flow_yaw_rate(self, frame: np.ndarray) -> float:
         """
@@ -1568,6 +1845,13 @@ class CelestialSphere3D:
         print("  I - Toggle yaw source (Optical/IMU)")
         print("  D - Print yaw tracking status")
         print("  Q/ESC - Quit")
+        if self.video_capture is not None:
+            print("-" * 50)
+            print("Video Controls:")
+            print("  Space - Play/Pause video")
+            print("  [ / ] - Decrease/Increase playback speed")
+            print("  , / . - Step back/forward one frame")
+            print("  Home  - Restart video from beginning")
         print("=" * 50)
         print("YAW TRACKING: Using OPTICAL FLOW (no IMU drift!)")
         print("  Pitch/Roll still from IMU, Yaw from camera")
@@ -1584,14 +1868,24 @@ class CelestialSphere3D:
                 elif demo_mode:
                     self.update_attitude_simulation()
 
-                # Capture camera frame if available
-                if self.camera is not None:
+                # Capture frame from camera or video file
+                if self.video_capture is not None:
+                    # Video file playback
+                    frame = self.read_video_frame()
+                    if frame is not None:
+                        self.camera_frame = frame
+
+                        # Compute optical flow yaw rate
+                        if self.optical_flow_enabled and self.video_playing:
+                            self.compute_optical_flow_yaw_rate(self.camera_frame)
+                            self.update_optical_yaw()
+                elif self.camera is not None:
                     ret, frame = self.camera.read()
                     if ret:
                         # Camera may be mounted upside down - toggle with --flip-camera
                         # Currently: No rotation (was ROTATE_180 but removed for testing)
                         self.camera_frame = frame
-                        
+
                         # Compute optical flow yaw rate
                         if self.optical_flow_enabled:
                             self.compute_optical_flow_yaw_rate(self.camera_frame)
@@ -1614,6 +1908,9 @@ class CelestialSphere3D:
 
             if self.camera:
                 self.camera.release()
+
+            if self.video_capture:
+                self.video_capture.release()
 
             pygame.quit()
             print("\nViewer closed.")
@@ -1647,6 +1944,12 @@ def main():
                         help='WitMotion WT9011DCL IMU port (e.g., /dev/rfcomm0, /dev/ttyUSB0)')
     parser.add_argument('--imu-cal', type=str, default=None,
                         help='IMU-camera calibration file (from run_calibration.py)')
+    parser.add_argument('--video', type=str, default=None,
+                        help='Video file to play instead of camera (MP4, AVI, etc.)')
+    parser.add_argument('--loop', action='store_true',
+                        help='Loop video playback (use with --video)')
+    parser.add_argument('--video-speed', type=float, default=1.0,
+                        help='Initial video playback speed multiplier (default: 1.0)')
 
     args = parser.parse_args()
 
@@ -1717,8 +2020,13 @@ def main():
         except:
             print(f"Invalid camera resolution: {args.cam_res}")
 
-    # Start camera if specified, or mock if --mock flag
-    if args.camera is not None:
+    # Start video file, camera, or mock camera (mutually exclusive, video takes priority)
+    if args.video is not None:
+        if viewer.start_video_file(args.video, loop=args.loop):
+            viewer.video_speed = args.video_speed
+            if args.video_speed != 1.0:
+                print(f"Initial playback speed: {args.video_speed:.1f}x")
+    elif args.camera is not None:
         viewer.start_camera(args.camera, cam_resolution)
     elif args.mock:
         viewer.start_mock_camera()
