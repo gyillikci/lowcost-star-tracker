@@ -4,14 +4,15 @@ Plate Solving using Tetra3 (ESA)
 Uses the tetra3 library from the European Space Agency for fast, reliable
 lost-in-space plate solving. Tetra3 is specifically designed for star trackers.
 
-Installation:
-    pip install tetra3
+The tetra3 library is included locally in external/tetra3/ with numpy
+compatibility patches applied.
 
 References:
     - GitHub: https://github.com/esa/tetra3
     - Docs: https://tetra3.readthedocs.io/
 """
 
+import sys
 import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Dict, Any
@@ -23,13 +24,19 @@ import logging
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Add local tetra3 to path (with numpy compatibility patches)
+_tetra3_path = Path(__file__).parent.parent.parent / 'external' / 'tetra3'
+if _tetra3_path.exists():
+    sys.path.insert(0, str(_tetra3_path))
+
 # Try to import tetra3
 try:
     import tetra3
     TETRA3_AVAILABLE = True
+    logger.info(f"tetra3 loaded from: {tetra3.__file__}")
 except ImportError:
     TETRA3_AVAILABLE = False
-    logger.warning("tetra3 not installed. Install with: pip install tetra3")
+    logger.warning("tetra3 not available. Clone from: https://github.com/esa/tetra3")
 
 # Try to import OpenCV for image processing
 try:
