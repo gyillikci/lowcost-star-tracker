@@ -4,15 +4,17 @@
 
 Renders a 3D celestial sphere with camera FOV visualization using OpenGL.
 The camera's field of view is shown as a highlighted region on the sphere
-that updates based on Orange Cube attitude data.
+that updates based on IMU attitude data (Orange Cube or WitMotion WT9011DCL).
 
 Requirements:
-    pip install PyOpenGL PyOpenGL_accelerate pygame numpy
+    pip install PyOpenGL PyOpenGL_accelerate pygame numpy pyserial
 
 Usage:
-    python celestial_sphere_3d.py                    # Demo mode with simulated attitude
-    python celestial_sphere_3d.py --port COM3        # With Orange Cube
-    python celestial_sphere_3d.py --camera 0         # With USB camera feed
+    python celestial_sphere_3d.py                           # Demo mode with simulated attitude
+    python celestial_sphere_3d.py --port COM3               # With Orange Cube
+    python celestial_sphere_3d.py --witmotion /dev/rfcomm0  # With WitMotion WT9011DCL (Bluetooth)
+    python celestial_sphere_3d.py --witmotion /dev/ttyUSB0  # With WitMotion WT9011DCL (USB)
+    python celestial_sphere_3d.py --camera 0                # With USB camera feed
 
 Controls:
     Left Mouse Drag  - Rotate view around sphere
@@ -1150,22 +1152,55 @@ class CelestialSphere3D:
         try:
             from mavlink.orange_cube_reader import OrangeCubeReader
             self.imu_reader = OrangeCubeReader(port=port, baudrate=baudrate)
-            
+
             # Connect to the flight controller
             if self.imu_reader.connect():
                 # Request attitude data stream
                 self.imu_reader.request_data_streams(rate_hz=50)
-                
+
                 # Start background reader thread
                 self._imu_thread = threading.Thread(target=self._imu_reader_thread, daemon=True)
                 self._imu_thread.start()
-                
+
                 print(f"Started Orange Cube reader on {port}")
             else:
                 print(f"Failed to connect to Orange Cube on {port}")
                 self.imu_reader = None
         except Exception as e:
             print(f"Error starting IMU reader: {e}")
+            self.imu_reader = None
+
+    def start_witmotion_reader(self, port: str, baudrate: int = 115200):
+        """
+        Start the WitMotion WT9011DCL IMU reader.
+
+        Args:
+            port: Serial port (e.g., '/dev/rfcomm0' for Bluetooth, '/dev/ttyUSB0' for USB)
+            baudrate: Serial baudrate (default 115200)
+        """
+        try:
+            from imu.witmotion_reader import WitMotionReader
+            self.imu_reader = WitMotionReader(port=port, baudrate=baudrate)
+
+            # Connect to the IMU
+            if self.imu_reader.connect():
+                # Request data streams (informational for WitMotion)
+                self.imu_reader.request_data_streams(rate_hz=50)
+
+                # Start background reader thread
+                self._imu_thread = threading.Thread(target=self._imu_reader_thread, daemon=True)
+                self._imu_thread.start()
+
+                print(f"Started WitMotion IMU reader on {port}")
+            else:
+                print(f"Failed to connect to WitMotion IMU on {port}")
+                self.imu_reader = None
+        except ImportError as e:
+            print(f"WitMotion reader not available: {e}")
+            print("Make sure imu/witmotion_reader.py exists")
+            self.imu_reader = None
+        except Exception as e:
+            print(f"Error starting WitMotion IMU reader: {e}")
             self.imu_reader = None
 
     def start_camera(self, camera_index: int, resolution: tuple = None):
@@ -1608,6 +1643,8 @@ def main():
                         help='Camera resolution WxH (e.g., 1920x1080)')
     parser.add_argument('--mock', action='store_true',
                         help='Use mock camera and simulated attitude (no hardware needed)')
+    parser.add_argument('--witmotion', type=str, default=None,
+                        help='WitMotion WT9011DCL IMU port (e.g., /dev/rfcomm0, /dev/ttyUSB0)')
     parser.add_argument('--imu-cal', type=str, default=None,
                         help='IMU-camera calibration file (from run_calibration.py)')
 
@@ -1665,8 +1702,10 @@ def main():
     if args.imu_cal:
         viewer.load_imu_calibration(args.imu_cal)
 
-    # Start Orange Cube reader if port specified
-    if args.port:
+    # Start IMU reader (WitMotion or Orange Cube)
+    if args.witmotion:
+        viewer.start_witmotion_reader(args.witmotion, args.baudrate)
+    elif args.port:
         viewer.start_imu_reader(args.port, args.baudrate)
 
     # Parse camera resolution if specified
@@ -1685,7 +1724,7 @@ def main():
         viewer.start_mock_camera()
 
     # Run in demo mode if no IMU connected (simulated attitude)
-    demo_mode = args.port is None
+    demo_mode = args.port is None and args.witmotion is None
 
     viewer.run(demo_mode=demo_mode)
 
