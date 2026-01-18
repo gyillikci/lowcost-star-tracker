@@ -354,6 +354,17 @@ star_tracker/
 
 ## 5. Hardware Components
 
+> **Note on Hardware Configurations:**
+> This section describes **proposed hardware configurations** for low-cost star tracking:
+> - **Configuration 1**: GoPro Hero 7 Black (portable astrophotography)
+> - **Configuration 2**: ZWO ASI585MC + Entaniya M12 220 (all-sky monitoring)
+>
+> The **real-time SIL/HIL demonstrations** (Sections 6.9 and 11.6) were performed using:
+> - **Camera**: Harrier 10x AF Zoom (1280×720 @ 60 FPS)
+> - **IMU**: Orange Cube flight controller (MAVLink)
+>
+> This demonstrates the system's flexibility to work with various camera/IMU combinations.
+
 ### 5.1 Primary Camera: GoPro Hero 7 Black
 
 The GoPro Hero 7 Black serves as the primary sensor platform, selected for its combination of imaging capability, embedded sensors, and cost-effectiveness.
@@ -1188,7 +1199,9 @@ Raw Frame
 
 #### 6.9.5 Implementation: Dual GUI System
 
-The hybrid system is implemented as a dual-window application:
+The hybrid system is implemented as a dual-window application, demonstrated using:
+- **Camera**: Harrier 10x AF Zoom (1280×720 @ 60 FPS)
+- **IMU**: Orange Cube flight controller (MAVLink ATTITUDE @ 100 Hz)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -2309,10 +2322,16 @@ To enable quantitative testing of the stabilization system without requiring act
   - **Amplitude** (0.1-5.0°): How much the view moves
   - **Star Magnitude Limit** (1.0-7.0 or All): Control number of visible stars
 
-**3. Real Camera Hardware**
-- Harrier 10x camera viewing the monitor
-- Orange Cube IMU providing attitude data
-- Same hardware as actual star tracking setup
+**3. Real Camera Hardware (SIL/HIL Demo Configuration)**
+
+| Component | Model | Specification |
+|-----------|-------|---------------|
+| Camera | Harrier 10x AF Zoom | 1280×720 @ 60 FPS, 10x optical zoom |
+| IMU | Orange Cube (ArduPilot) | MAVLink ATTITUDE @ 100 Hz |
+| Interface | USB (CAP_DSHOW) + COM6 @ 115200 | Windows platform |
+| FOV | ~50° HFOV at 1x zoom | ~34° VFOV |
+
+**Note:** This SIL/HIL demonstration uses the Harrier 10x + Orange Cube setup for real-time stabilization testing. The GoPro Hero 7 Black and ASI585MC + Entaniya configurations described in Section 5 are **proposed configurations** for portable astrophotography and all-sky monitoring respectively, but were not used in the SIL/HIL testing.
 
 #### 11.6.3 Stellarium API Integration
 
