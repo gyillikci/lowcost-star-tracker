@@ -152,7 +152,7 @@ def main():
                 result = t3.solve_from_image(
                     pil_image,
                     fov_estimate=fov_estimate,
-                    fov_max_error=10.0,
+                    fov_max_error=100.0,
                     match_radius=0.01,
                     return_matches=True
                 )
