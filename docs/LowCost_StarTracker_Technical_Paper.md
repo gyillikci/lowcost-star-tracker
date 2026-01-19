@@ -952,7 +952,7 @@ For accurate sensor fusion, the camera and IMU must be rigidly coupled so that a
 
 | Single Frame (Noisy) | Stacked Result | Enhanced Output |
 |:-------------------:|:--------------:|:---------------:|
-| ![CLAHE Filter](images/stacked_20260117_clahe.png) | ![Log Filter](images/realtime_stacking_stacked.png) | ![Median Filter](images/stacked_20260117_median.png) |
+| ![CLAHE Filter](images/stacked_20260117_clahe.png) | ![Log Filter](images/stacked_20260117_log.png) | ![Median Filter](images/stacked_20260117_median.png) |
 
 *The progression demonstrates faint star recovery through real-time stacking: (Left) Single noisy frame with one visible bright star; (Center) After stacking multiple frames, a second fainter star becomes visible; (Right) Enhanced output with reduced noise and improved star visibility. The green rectangle indicates the template-locked region of interest used for frame alignment.*
 
