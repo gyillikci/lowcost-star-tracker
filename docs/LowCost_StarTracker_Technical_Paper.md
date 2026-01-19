@@ -948,6 +948,14 @@ For accurate sensor fusion, the camera and IMU must be rigidly coupled so that a
 | External IMU + Camera | BNO055, MPU9250 | Custom mount | Requires calibration |
 | ASI585MC + External IMU | Separate 9-DOF | Rigid bracket | Requires calibration |
 
+**Figure 6.1: Real-Time Stacking Output - Faint Star Recovery**
+
+| Single Frame (Noisy) | Stacked Result | Enhanced Output |
+|:-------------------:|:--------------:|:---------------:|
+| ![CLAHE Filter](images/stacked_20260117_clahe.png) | ![Log Filter](images/realtime_stacking_stacked.png) | ![Median Filter](images/stacked_20260117_median.png) |
+
+*The progression demonstrates faint star recovery through real-time stacking: (Left) Single noisy frame with one visible bright star; (Center) After stacking multiple frames, a second fainter star becomes visible; (Right) Enhanced output with reduced noise and improved star visibility. The green rectangle indicates the template-locked region of interest used for frame alignment.*
+
 ### 6.3 Coordinate Systems and Transformations
 
 #### 6.3.1 Reference Frames
