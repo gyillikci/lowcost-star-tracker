@@ -1,0 +1,105 @@
+{
+  "summary": {
+    "passed": 3,
+    "total": 4,
+    "pass_rate": 0.75,
+    "timestamp": "2026-01-13 12:28:21"
+  },
+  "tests": [
+    {
+      "name": "centroid_accuracy",
+      "passed": true,
+      "metrics": {
+        "mean_error_pixels": 0.010416363658527042,
+        "rms_error_pixels": 0.13011568621867173,
+        "median_error_pixels": 0.002266661372730517,
+        "max_error_pixels": 2.560599549675508,
+        "detection_rate": 0.9960000000000001,
+        "false_positive_rate": 0.0,
+        "num_trials": 10,
+        "stars_per_trial": 50,
+        "total_measurements": 498
+      },
+      "notes": "Target: RMS < 0.5 px, Detection > 90%, FP < 10%",
+      "timestamp": "2026-01-13 12:27:37"
+    },
+    {
+      "name": "snr_scaling",
+      "passed": true,
+      "metrics": {
+        "frame_counts": [
+          1,
+          4,
+          9,
+          16,
+          25,
+          36
+        ],
+        "measured_snr": [
+          9690.677173966347,
+          18444.232799943667,
+          28797.720424324387,
+          38311.212899422404,
+          47555.11228877708,
+          57752.87791057235
+        ],
+        "theoretical_snr": [
+          9690.677173966347,
+          19381.354347932695,
+          29072.031521899044,
+          38762.70869586539,
+          48453.385869831734,
+          58144.06304379809
+        ],
+        "sqrt_fit_coefficient": 9566.043786359314,
+        "fit_correlation": 0.999813358402026,
+        "snr_improvement_at_25_frames": 5.9596328382213954,
+        "theoretical_improvement_at_25_frames": 6.0
+      },
+      "notes": "Verifies SNR \u221d sqrt(N). Target: correlation > 0.95",
+      "timestamp": "2026-01-13 12:27:39"
+    },
+    {
+      "name": "processing_performance",
+      "passed": false,
+      "metrics": {
+        "benchmarks": {
+          "640x480": {
+            "detection_time_ms": 187.91962259999764,
+            "stacking_10_frames_ms": 13.475838600004408
+          },
+          "1280x720": {
+            "detection_time_ms": 1218.3388962000095,
+            "stacking_10_frames_ms": 78.57256500000176
+          },
+          "1920x1080": {
+            "detection_time_ms": 5447.839355999986,
+            "stacking_10_frames_ms": 178.80405899999232
+          }
+        },
+        "hd_detection_fps": 0.18355901021542578,
+        "num_iterations": 5,
+        "platform": "Python/NumPy (single-threaded)"
+      },
+      "notes": "Target: HD detection < 500ms for real-time feasibility",
+      "timestamp": "2026-01-13 12:28:19"
+    },
+    {
+      "name": "motion_compensation",
+      "passed": true,
+      "metrics": {
+        "motion_pixels": 15,
+        "fwhm_reference": 2.5,
+        "fwhm_blurred": 4.8,
+        "fwhm_compensated": 2.5,
+        "fwhm_improvement_ratio": 1.92,
+        "detections_reference": 29,
+        "detections_blurred": 28,
+        "detections_compensated": 29,
+        "detection_recovery_rate": 1.0
+      },
+      "notes": "Target: >80% detection recovery after compensation",
+      "timestamp": "2026-01-13 12:28:21"
+    }
+  ]
+}
