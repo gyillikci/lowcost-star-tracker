@@ -1317,7 +1317,11 @@ The video shows:
 
 ### 6.9 Hybrid Stabilization: Gyroscope + Template Matching
 
-A significant advancement in our stabilization approach combines gyroscope-based compensation with template matching refinement, achieving superior performance compared to either method alone. See [hybrid real-time video stabilization and ROI stacking demonstration](https://youtu.be/0RTEzAB1f-k?t=118).
+A significant advancement in our stabilization approach combines gyroscope-based compensation with template matching refinement, achieving superior performance compared to either method alone.
+
+[![Hybrid Stabilization Demo](https://img.youtube.com/vi/0RTEzAB1f-k/0.jpg)](https://youtu.be/0RTEzAB1f-k?t=118)
+
+*Click thumbnail to watch hybrid real-time video stabilization and ROI stacking demonstration*
 
 #### 6.9.1 The Problem with Single-Method Approaches
 
