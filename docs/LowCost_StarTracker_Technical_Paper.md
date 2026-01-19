@@ -10,9 +10,9 @@
 
 ## Abstract
 
-This paper presents a novel low-cost star tracker system that leverages consumer-grade hardware combined with advanced software algorithms to achieve astronomical imaging capabilities traditionally reserved for expensive professional equipment. We present two hardware configurations: (1) a basic setup using GoPro Hero 7 Black with embedded gyroscope for motion compensation, and (2) an enhanced all-sky configuration using the ZWO ASI585MC astronomy camera paired with an Entaniya M12 220° fisheye lens for full-hemisphere coverage. By implementing sophisticated frame stacking techniques and star detection algorithms, our system achieves a cost reduction of 95-99% compared to commercial star trackers while maintaining acceptable performance for amateur astrophotography, meteor detection, and educational applications. The complete system can be assembled for $500-1,500, compared to $10,000-$500,000 for commercial alternatives.
+This paper presents a novel low-cost star tracker system designed to capture faint starlight even in heavily light-polluted urban environments. The core approach combines gyroscope-based motion compensation with video frame stacking: by first stabilizing video captured from moving platforms—seaborne, airborne, and land-based vehicles—using high-rate IMU data, then aligning and stacking hundreds of frames, we effectively increase the signal-to-noise ratio to reveal stars that would otherwise be invisible in individual frames. Our hardware configuration centers on the Active Silicon Harrier 10x AF-Zoom Camera, featuring a 1/2.8" Sony IMX462LQR-C CMOS sensor with exceptional low-light performance (0.0004 lux minimum illumination in monochrome mode), 10x optical zoom (f=5.1-51mm, F1.6-1.8), and 1080p60 video output via simultaneous USB 3.1 and HDMI interfaces. The camera is paired with an Orange Cube flight controller (featuring the ICM-20948 9-axis IMU) for high-precision gyroscope-based motion compensation. The system is validated using Stellarium planetarium software to generate high-fidelity synthetic star fields displayed on a monitor, providing a controlled SIL/HIL test environment with configurable camera motion and vibration profiles. By implementing sophisticated frame stacking techniques and star detection algorithms, our system achieves a cost reduction of 95-99% compared to commercial star trackers while maintaining acceptable performance for amateur astrophotography, meteor detection, and educational applications. The complete system can be assembled for $500-1,500, compared to $10,000-$500,000 for commercial alternatives.
 
-**Keywords:** Star Tracker, Astrophotography, Gyroscope Stabilization, Image Stacking, Low-Cost Sensors, GoPro, ASI585MC, All-Sky Camera, Fisheye Lens, Motion Compensation
+**Keywords:** Star Tracker, Astrophotography, Gyroscope Stabilization, Image Stacking, Low-Cost Sensors, Harrier Camera, Orange Cube, ICM-20948 IMU, Stellarium, Motion Compensation, SIL/HIL Testing
 
 ---
 
@@ -51,7 +51,11 @@ The high cost of commercial star trackers creates significant barriers for:
 
 ### 1.3 Proposed Solution
 
-We present a software-intensive approach that shifts complexity from expensive hardware to sophisticated algorithms. By using a consumer-grade GoPro Hero 7 Black camera ($200-400) with its embedded gyroscope, combined with custom Python software for motion compensation and frame stacking, we achieve results comparable to entry-level professional systems at a fraction of the cost.
+We present a software-intensive approach that shifts complexity from expensive hardware to sophisticated algorithms. The core concept is to capture faint starlight even in light-polluted environments by combining gyroscope-based motion compensation with video frame stacking—stabilizing video from moving platforms (seaborne, airborne, and land-based vehicles), then aligning and stacking hundreds of frames to increase the signal-to-noise ratio and reveal stars invisible in individual frames. See [video demonstration](https://www.youtube.com/shorts/uqEzUAQ2iE8).
+
+**Prototype System:** Our validated prototype uses the Active Silicon Harrier 10x AF-Zoom Camera paired with an Orange Cube flight controller (ICM-20948 9-axis IMU). The system is tested using Stellarium planetarium software to generate high-fidelity synthetic star fields, providing a controlled SIL/HIL environment with configurable motion and vibration profiles.
+
+**Alternative Hardware:** The software pipeline is designed to work with various camera+IMU combinations, including consumer options like the GoPro Hero 7 Black ($200-400) with its embedded gyroscope, or dedicated astronomy cameras like the ZWO ASI585MC with external IMU.
 
 ### 1.4 Contributions
 
@@ -162,20 +166,19 @@ Research by Rijlaarsdam et al. (2020) demonstrated star tracking using smartphon
 
 Multiple hobbyist projects use Raspberry Pi with camera modules (HQ Camera, ~$50) for basic star tracking, though without integrated gyroscope stabilization.
 
-### 2.5 GoPro Astrophotography
+### 2.5 Consumer Camera Astrophotography
 
-The use of GoPro cameras for astrophotography has gained popularity in the amateur astronomy community:
+Consumer cameras have gained popularity in the amateur astronomy community as accessible alternatives to dedicated astronomy equipment.
 
+**GoPro Action Cameras:** The GoPro Hero series offers built-in gyroscopes and GPMF telemetry, making them attractive for motion-compensated astrophotography:
 - Night Lapse mode enables long-exposure sequences
 - Wide-angle lenses capture large star fields
-- Built-in intervalometer simplifies time-lapse capture
+- Built-in IMU enables gyro-based stabilization
 - Raw format preserves maximum dynamic range
 
-However, limitations include:
-- Small sensor size (1/2.3") limits light gathering
-- Fixed wide-angle lens restricts magnification
-- Hot pixels in long exposures
-- Limited manual control in older models
+**Industrial/Machine Vision Cameras:** Cameras like the Active Silicon Harrier series offer superior low-light performance (0.0004 lux) and flexible integration with external IMUs for demanding applications on moving platforms.
+
+**Astronomy Cameras:** Dedicated cameras like the ZWO ASI585MC offer cooled sensors and exceptional sensitivity but require external IMU integration for motion compensation.
 
 ---
 
@@ -284,20 +287,22 @@ Our low-cost star tracker employs a software-intensive architecture that maximiz
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        LOW-COST STAR TRACKER SYSTEM                      │
+│                           (Prototype Configuration)                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐  │
-│  │   GoPro      │    │   Tripod/    │    │      Processing          │  │
-│  │  Hero 7      │───▶│    Mount     │───▶│       Computer           │  │
-│  │   Black      │    │              │    │   (Python Pipeline)      │  │
+│  │  Harrier 10x │    │   Moving     │    │      Processing          │  │
+│  │  AF-Zoom     │───▶│  Platform    │───▶│       Computer           │  │
+│  │   Camera     │    │ (land/sea/air)│   │   (Python Pipeline)      │  │
 │  └──────────────┘    └──────────────┘    └──────────────────────────┘  │
-│         │                                           │                    │
-│         ▼                                           ▼                    │
-│  ┌──────────────┐                         ┌──────────────────────────┐  │
-│  │  Video +     │                         │     Output Image         │  │
-│  │  GPMF Data   │                         │   (Stacked, Aligned)     │  │
-│  └──────────────┘                         └──────────────────────────┘  │
+│         │                   │                        │                   │
+│         ▼                   ▼                        ▼                   │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐  │
+│  │ Video Stream │    │ Orange Cube  │    │     Output Image         │  │
+│  │ (USB/HDMI)   │    │ IMU Data     │    │   (Stacked, Aligned)     │  │
+│  └──────────────┘    └──────────────┘    └──────────────────────────┘  │
 │                                                                          │
+│  SIL/HIL Validation: Stellarium synthetic star fields on monitor        │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -354,22 +359,135 @@ star_tracker/
 
 ## 5. Hardware Components
 
-> **Note on Hardware Configurations:**
-> This section describes **proposed hardware configurations** for low-cost star tracking:
-> - **Configuration 1**: GoPro Hero 7 Black (portable astrophotography)
-> - **Configuration 2**: ZWO ASI585MC + Entaniya M12 220 (all-sky monitoring)
+> **Hardware Configurations:**
 >
-> The **real-time SIL/HIL demonstrations** (Sections 6.9 and 11.6) were performed using:
-> - **Camera**: Harrier 10x AF Zoom (1280×720 @ 60 FPS)
-> - **IMU**: Orange Cube flight controller (MAVLink)
+> **Prototype System (validated):**
+> - **Camera**: Active Silicon Harrier 10x AF-Zoom (1080p60, 0.0004 lux sensitivity)
+> - **IMU**: Orange Cube flight controller with ICM-20948 9-axis IMU (MAVLink telemetry)
+> - **Validation**: Stellarium planetarium software generating synthetic star fields
+> - **Target Platforms**: Seaborne, airborne, and land-based vehicles
 >
-> This demonstrates the system's flexibility to work with various camera/IMU combinations.
+> **Alternative Configurations (software-compatible):**
+> - **Configuration A**: GoPro Hero 7 Black (embedded gyroscope, GPMF telemetry)
+> - **Configuration B**: ZWO ASI585MC + Entaniya M12 220 + external IMU (all-sky monitoring)
 
-### 5.1 Primary Camera: GoPro Hero 7 Black
+### 5.1 Prototype Camera: Active Silicon Harrier 10x AF-Zoom
 
-The GoPro Hero 7 Black serves as the primary sensor platform, selected for its combination of imaging capability, embedded sensors, and cost-effectiveness.
+The Active Silicon Harrier 10x AF-Zoom camera serves as the primary sensor platform for our validated prototype, selected for its exceptional low-light performance and flexible integration capabilities for moving platform applications.
 
 #### 5.1.1 Imaging Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| Sensor Type | 1/2.8" Sony IMX462LQR-C CMOS (progressive scan) |
+| Effective Pixels | ~2.13 MP |
+| Horizontal Resolution | 700 TV lines |
+| Optical Zoom | 10x (f=5.1mm to 51mm, F1.6 to 1.8) |
+| Digital Zoom | 2x to 32x |
+| Field of View | 57° (wide) to 6.2° (telephoto) |
+| Video Output | 1080p60, 1080p30, 720p60, 720p30 |
+| Interfaces | Simultaneous USB 3.1 Gen1 (UVC) + HDMI |
+| Minimum Illumination | **0.003 lux (color), 0.0004 lux (mono)** |
+| Shutter Speed | 1/30 to 1/30,000 sec |
+| S/N Ratio | >50 dB |
+
+#### 5.1.2 Physical Characteristics
+
+| Parameter | Value |
+|-----------|-------|
+| Dimensions | 62.4mm × 56mm × 45.5mm |
+| Weight | 138g |
+| Power | 9-15V DC, ~4.8W @ 1080p60 |
+| Control Protocols | UVC, VISCA (USB/TTL/RS-232), Pelco D/P |
+| Minimum Object Distance | 100mm to 1000mm |
+
+#### 5.1.3 Advantages for Star Tracking on Moving Platforms
+
+- **Exceptional low-light sensitivity:** 0.0004 lux enables star detection even in challenging conditions
+- **10x optical zoom:** Allows flexible field-of-view selection without lens changes
+- **Fast autofocus:** Maintains sharp focus during platform motion
+- **Dual output:** Simultaneous USB and HDMI enables recording + live preview
+- **Compact form factor:** Suitable for integration on vehicles, drones, and marine vessels
+- **Industrial reliability:** Designed for demanding machine vision applications
+
+---
+
+### 5.2 Prototype IMU: Orange Cube Flight Controller
+
+The Orange Cube flight controller provides high-rate IMU data via MAVLink protocol, enabling precise motion compensation.
+
+#### 5.2.1 IMU Specifications (ICM-20948)
+
+| Parameter | Value |
+|-----------|-------|
+| Type | 9-axis MEMS (3-axis gyro + 3-axis accel + 3-axis mag) |
+| Gyroscope Range | ±250/500/1000/2000 °/s (selectable) |
+| Gyroscope Resolution | 16-bit |
+| Gyroscope Noise | 0.015 °/s/√Hz |
+| Accelerometer Range | ±2/4/8/16 g (selectable) |
+| Sampling Rate | Up to 1 kHz (gyro), 4.5 kHz (accel) |
+| Interface | MAVLink over USB/serial |
+
+#### 5.2.2 Sensor Fusion
+
+The system employs VQF (Versatile Quaternion-based Filter) for sensor fusion:
+- Combines gyroscope and accelerometer data
+- Magnetometer optional (disabled for moving platform use due to interference)
+- Outputs orientation quaternions at IMU sample rate
+
+---
+
+### 5.3 SIL/HIL Validation Environment: Stellarium
+
+The prototype is validated using Stellarium planetarium software to generate controlled test conditions. See [Stellarium Software-in-the-Loop demonstration](https://www.youtube.com/watch?v=_I9gVQl0hvA).
+
+#### 5.3.1 Test Setup
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    SIL/HIL TEST ENVIRONMENT                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   ┌─────────────┐        ┌─────────────┐      ┌─────────────┐  │
+│   │  Stellarium │        │   Monitor   │      │  Harrier    │  │
+│   │ Star Field  │───────▶│  Display    │◀─────│   Camera    │  │
+│   │  Generator  │        │             │      │             │  │
+│   └─────────────┘        └─────────────┘      └──────┬──────┘  │
+│         │                                            │          │
+│         │ Configurable:                              │ Video    │
+│         │ - Star magnitude                           │ Stream   │
+│         │ - Sky rotation                             ▼          │
+│         │ - Light pollution        ┌─────────────────────────┐ │
+│         │ - Atmospheric effects    │   Processing Pipeline   │ │
+│         │                          │   + Orange Cube IMU     │ │
+│         │                          └─────────────────────────┘ │
+│         │                                            │          │
+│         │ Simulated Motion:                          │ Stacked  │
+│         │ - Platform vibration                       ▼ Output   │
+│         │ - Vehicle dynamics        ┌─────────────────────────┐│
+│         │ - Turbulence             │   Validation Metrics    ││
+│         └──────────────────────────│   - Star detection rate ││
+│                                    │   - Alignment accuracy  ││
+│                                    │   - SNR improvement     ││
+│                                    └─────────────────────────┘│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 5.3.2 Validation Capabilities
+
+- **Controlled star fields:** Known star positions for accuracy verification
+- **Configurable light pollution:** Test performance in Bortle 1-9 conditions
+- **Motion injection:** Simulate platform dynamics (vibration, drift, turbulence)
+- **Repeatability:** Identical test conditions for algorithm comparison
+- **Ground truth:** Perfect reference for quantitative performance metrics
+
+---
+
+### 5.4 Alternative Configuration A: GoPro Hero 7 Black
+
+The GoPro Hero 7 Black provides an accessible consumer option with integrated IMU, suitable for portable astrophotography applications.
+
+#### 5.4.1 Imaging Specifications
 
 | Parameter | Value |
 |-----------|-------|
@@ -383,7 +501,7 @@ The GoPro Hero 7 Black serves as the primary sensor platform, selected for its c
 | ISO Range | 100-6400 (extended: 100-12800) |
 | Shutter Speed | 1/8000s - 30s (photo), 1/fps (video) |
 
-#### 5.1.2 Embedded Gyroscope
+#### 5.4.2 Embedded Gyroscope
 
 | Parameter | Value |
 |-----------|-------|
@@ -394,7 +512,7 @@ The GoPro Hero 7 Black serves as the primary sensor platform, selected for its c
 | Data Format | GPMF (GoPro Metadata Format) |
 | Synchronization | Frame-accurate timestamps |
 
-#### 5.1.3 Astrophotography Settings (Protune Mode)
+#### 5.4.3 Astrophotography Settings (Protune Mode)
 
 For optimal night sky capture:
 - **ISO Min/Max:** 800/6400
@@ -404,30 +522,7 @@ For optimal night sky capture:
 - **Sharpness:** Low
 - **Lens Mode:** Linear (recommended for stacking)
 
-### 5.2 Supporting Hardware
-
-#### 5.2.1 Tripod Requirements
-
-- **Stability:** Vibration-dampening essential
-- **Payload Capacity:** ≥ 1 kg
-- **Head Type:** Ball head or pan-tilt
-- **Recommended:** Carbon fiber for minimal thermal expansion
-
-#### 5.2.2 Power Supply
-
-- **Internal Battery:** ~45 min continuous recording
-- **External Power:** USB-C power bank (10,000+ mAh recommended)
-- **Cold Weather:** Insulated battery pack
-
-#### 5.2.3 Processing Computer
-
-Minimum requirements:
-- **CPU:** 4-core, 2.5+ GHz
-- **RAM:** 8 GB (16 GB recommended)
-- **Storage:** SSD with 50+ GB free
-- **GPU:** Optional CUDA support for acceleration
-
-### 5.3 Camera Intrinsic Parameters
+#### 5.4.4 GoPro Camera Intrinsic Parameters
 
 Calibrated intrinsic matrix for GoPro Hero 7 Black (Linear mode):
 
@@ -446,11 +541,13 @@ Distortion coefficients (Brown-Conrady model):
 - k2 = 0.08 (radial)
 - p1, p2 ≈ 0 (tangential, negligible)
 
-### 5.4 Enhanced Configuration: ZWO ASI585MC + Entaniya M12 220
+---
+
+### 5.5 Alternative Configuration B: ZWO ASI585MC + Entaniya M12 220
 
 For applications requiring higher sensitivity, larger field of view, or all-sky coverage, we provide an enhanced hardware configuration using dedicated astronomy equipment.
 
-#### 5.4.1 ZWO ASI585MC Camera
+#### 5.5.1 ZWO ASI585MC Camera
 
 The ZWO ASI585MC is a high-performance color astronomy camera based on Sony's latest STARVIS 2 technology, offering exceptional sensitivity and low noise characteristics ideal for star tracking and meteor detection.
 
@@ -501,7 +598,7 @@ The ASI585MC has enhanced sensitivity in red, green, and near-infrared (NIR) wav
 - 1.5× more sensitive than previous IMX485 sensor in NIR
 - Excellent for hydrogen-alpha (Hα) nebula detection
 
-#### 5.4.2 Entaniya Fisheye M12 220 Lens
+#### 5.5.2 Entaniya Fisheye M12 220 Lens
 
 The Entaniya Fisheye M12 220 is a precision Japanese-manufactured super wide-angle lens designed for full-hemisphere imaging applications.
 
@@ -560,7 +657,7 @@ Where φ = azimuthal angle in image plane
 
 Residual distortion from ideal equidistant: < 1% across full field
 
-#### 5.4.3 ASI585MC + Entaniya System Integration
+#### 5.5.3 ASI585MC + Entaniya System Integration
 
 **Physical Setup:**
 
@@ -626,7 +723,7 @@ Effective resolution: ~7.7 arcmin/pixel at image center
 | Use Case | Targeted fields | All-sky monitoring |
 | Cost | $200-400 | $450-600 |
 
-#### 5.4.4 Recommended Settings for ASI585MC
+#### 5.5.4 Recommended Settings for ASI585MC
 
 **For Star Tracking / All-Sky Imaging:**
 
@@ -649,7 +746,7 @@ Effective resolution: ~7.7 arcmin/pixel at image center
 | Format | SER video | Efficient capture format |
 | Trigger | Motion detection | Automated recording |
 
-#### 5.4.5 All-Sky Applications
+#### 5.5.5 All-Sky Applications
 
 The ASI585MC + Entaniya M12 220 configuration excels for:
 
@@ -683,17 +780,39 @@ The ASI585MC + Entaniya M12 220 configuration excels for:
 - Diurnal motion visualization
 - Seasonal sky changes
 
-### 5.5 Hardware Configuration Comparison
+### 5.6 Hardware Configuration Comparison
 
 | Configuration | Cost | FOV | Sensitivity | Best Use Case |
 |---------------|------|-----|-------------|---------------|
+| **Harrier 10x + Orange Cube (Prototype)** | $800-1,200 | 6-57° | Exceptional (0.0004 lux) | Moving platforms, SIL/HIL validation |
 | **GoPro Hero 7 Black** | $200-400 | 94-122° | Moderate | Portable astrophotography, travel |
 | **ASI585MC + Entaniya** | $700-900 | 220° | Excellent | All-sky monitoring, meteor detection |
 | **ASI585MC Pro + Entaniya** | $900-1,100 | 220° | Exceptional | Long-exposure, scientific applications |
 
-### 5.6 Enhanced System Cost Breakdown
+### 5.7 Cost Breakdown by Configuration
 
-**Configuration 2: ASI585MC + Entaniya M12 220**
+**Prototype: Harrier 10x + Orange Cube**
+
+| Component | Cost (USD) |
+|-----------|------------|
+| Active Silicon Harrier 10x AF-Zoom | $500-700 |
+| Orange Cube Flight Controller | $150-250 |
+| USB 3.0 Capture/Cabling | $50-100 |
+| Processing Computer | $100-200 |
+| **Total** | **$800-1,250** |
+
+**Alternative A: GoPro Hero 7 Black**
+
+| Component | Cost (USD) |
+|-----------|------------|
+| GoPro Hero 7 Black (used) | $150-250 |
+| GoPro Hero 7 Black (new) | $250-400 |
+| MicroSD Card (128GB+) | $20-40 |
+| Processing Computer | $100-200 |
+| **Total (used)** | **$270-490** |
+| **Total (new)** | **$370-640** |
+
+**Alternative B: ASI585MC + Entaniya M12 220**
 
 | Component | Cost (USD) |
 |-----------|------------|
@@ -759,6 +878,7 @@ For accurate sensor fusion, the camera and IMU must be rigidly coupled so that a
 
 | Configuration | IMU Source | Coupling | Accuracy |
 |---------------|-----------|----------|----------|
+| **Harrier 10x + Orange Cube (Prototype)** | ICM-20948 9-axis | Rigid bracket | High (calibrated) |
 | GoPro Hero 7 | Built-in BMI260 | Factory-calibrated | High |
 | External IMU + Camera | BNO055, MPU9250 | Custom mount | Requires calibration |
 | ASI585MC + External IMU | Separate 9-DOF | Rigid bracket | Requires calibration |
@@ -948,8 +1068,9 @@ Where:
 - θ (pitch): Rotation about camera Y axis
 - ψ (yaw): Rotation about camera Z axis
 
+For Harrier + Orange Cube (Prototype): R_cam_imu calibrated via rigid bracket alignment
 For GoPro with built-in IMU: R_cam_imu ≈ I (identity, factory-calibrated)
-For external IMU: Typically |φ|, |θ|, |ψ| < 5° after careful mounting
+For external IMU setups: Typically |φ|, |θ|, |ψ| < 5° after careful mounting
 ```
 
 ### 6.6 Sensor Fusion Algorithms
@@ -1113,7 +1234,7 @@ The video shows:
 
 ### 6.9 Hybrid Stabilization: Gyroscope + Template Matching
 
-A significant advancement in our stabilization approach combines gyroscope-based compensation with template matching refinement, achieving superior performance compared to either method alone.
+A significant advancement in our stabilization approach combines gyroscope-based compensation with template matching refinement, achieving superior performance compared to either method alone. See [hybrid real-time video stabilization and ROI stacking demonstration](https://youtu.be/0RTEzAB1f-k?t=118).
 
 #### 6.9.1 The Problem with Single-Method Approaches
 
@@ -1512,10 +1633,11 @@ pitch = atan2(-ax, sqrt(ay² + az²))
 
 **Magnetometer Usage:**
 
-For the GoPro configuration, the magnetometer is **not used** due to:
-1. Local magnetic disturbances in typical environments
-2. Sufficient accuracy from gyro-only integration for short observations
-3. Calibration complexity for consumer hardware
+For both the prototype (Orange Cube) and GoPro configurations, the magnetometer is **not used** due to:
+1. Electromagnetic interference on moving platforms (vehicles, aircraft, marine vessels)
+2. Local magnetic disturbances in typical environments
+3. Sufficient accuracy from gyro-only integration for short observations
+4. Calibration complexity for consumer hardware
 
 For extended observations (>5 minutes), star-aided drift correction is recommended over magnetometer fusion.
 
@@ -1533,7 +1655,18 @@ def normalize_quaternion(q):
 
 Normalization threshold: `||q|| - 1.0 > 1e-6` triggers renormalization.
 
-**Noise Parameters (GoPro Hero 7 Black):**
+**Noise Parameters:**
+
+*Orange Cube (ICM-20948) - Prototype:*
+
+| Parameter | Value | Units |
+|-----------|-------|-------|
+| Gyroscope noise density | 0.015 | °/s/√Hz |
+| Gyroscope bias stability | 5.0 | °/hour |
+| Accelerometer noise density | 230 | µg/√Hz |
+| Sample rate | Up to 1000 | Hz |
+
+*GoPro Hero 7 Black (Alternative):*
 
 | Parameter | Value | Units |
 |-----------|-------|-------|
@@ -1937,20 +2070,30 @@ At higher amplitudes, template matching search window (200px) may be exceeded:
 
 ### 10.1 Our Low-Cost Systems
 
-#### Configuration 1: GoPro-Based System (Portable)
+#### Prototype: Harrier 10x + Orange Cube (Validated)
+
+| Component | Cost (USD) |
+|-----------|------------|
+| Active Silicon Harrier 10x AF-Zoom | $500-700 |
+| Orange Cube Flight Controller | $150-250 |
+| USB 3.0 Capture/Cabling | $50-100 |
+| Processing Computer | $100-200 |
+| Software | Free (open source) |
+| **Total** | **$800-1,250** |
+
+#### Alternative A: GoPro-Based System (Portable)
 
 | Component | Cost (USD) |
 |-----------|------------|
 | GoPro Hero 7 Black (used) | $150-250 |
 | GoPro Hero 7 Black (new) | $250-400 |
-| Sturdy Tripod | $50-150 |
-| USB-C Power Bank (20,000 mAh) | $30-50 |
 | MicroSD Card (128 GB) | $15-25 |
+| Processing Computer | $100-200 |
 | Software | Free (open source) |
-| **Total (used camera)** | **$245-475** |
-| **Total (new camera)** | **$345-625** |
+| **Total (used camera)** | **$265-475** |
+| **Total (new camera)** | **$365-625** |
 
-#### Configuration 2: ASI585MC + Entaniya All-Sky System
+#### Alternative B: ASI585MC + Entaniya All-Sky System
 
 | Component | Cost (USD) |
 |-----------|------------|
@@ -1969,16 +2112,18 @@ At higher amplitudes, template matching search window (200px) may be exceeded:
 
 | Configuration | Cost Range | Best For |
 |---------------|------------|----------|
-| GoPro (used) | $245-475 | Budget, portable, travel |
-| GoPro (new) | $345-625 | Portable astrophotography |
+| **Harrier + Orange Cube (Prototype)** | **$800-1,250** | **Moving platforms, SIL/HIL validation** |
+| GoPro (used) | $265-475 | Budget, portable, travel |
+| GoPro (new) | $365-625 | Portable astrophotography |
 | ASI585MC Standard | $724-1,019 | All-sky monitoring, meteor detection |
 | ASI585MC Pro | $904-1,229 | Scientific applications, long exposures |
 
-### 9.2 Comparison with Commercial Solutions
+### 10.2 Comparison with Commercial Solutions
 
 | Solution | Cost | FOV | Accuracy | Use Case |
 |----------|------|-----|----------|----------|
-| **Our GoPro System** | **$250-625** | **94-122°** | **1-5 arcmin** | **Portable astro, education** |
+| **Our Prototype (Harrier+OC)** | **$800-1,250** | **6-57°** | **1-3 arcmin** | **Moving platforms, real-time** |
+| **Our GoPro System** | **$265-625** | **94-122°** | **1-5 arcmin** | **Portable astro, education** |
 | **Our ASI585MC System** | **$724-1,229** | **220°** | **5-10 arcmin** | **All-sky, meteor detection** |
 | Star Adventurer 2i | $400 | Lens dependent | 5 arcmin/hr | Portable astrophotography |
 | iOptron SkyGuider Pro | $500 | Lens dependent | 3.5 arcmin/hr | Portable astrophotography |
@@ -2331,7 +2476,7 @@ To enable quantitative testing of the stabilization system without requiring act
 | Interface | USB (CAP_DSHOW) + COM6 @ 115200 | Windows platform |
 | FOV | ~50° HFOV at 1x zoom | ~34° VFOV |
 
-**Note:** This SIL/HIL demonstration uses the Harrier 10x + Orange Cube setup for real-time stabilization testing. The GoPro Hero 7 Black and ASI585MC + Entaniya configurations described in Section 5 are **proposed configurations** for portable astrophotography and all-sky monitoring respectively, but were not used in the SIL/HIL testing.
+This SIL/HIL configuration represents the **validated prototype system**. The Harrier 10x + Orange Cube setup was specifically chosen for its exceptional low-light performance (0.0004 lux) and ability to demonstrate motion compensation for moving platforms. The GoPro Hero 7 Black and ASI585MC + Entaniya configurations described in Section 5 are **software-compatible alternatives** that can be used with the same processing pipeline for portable astrophotography and all-sky monitoring applications respectively.
 
 #### 11.6.3 Stellarium API Integration
 
@@ -2533,7 +2678,29 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 
 ## Appendix A: System Requirements
 
-### A.1 Configuration 1: GoPro-Based System
+### A.1 Prototype: Harrier 10x + Orange Cube (Validated)
+
+**Required Hardware:**
+- Active Silicon Harrier 10x AF-Zoom Camera
+- Orange Cube Flight Controller (or compatible ArduPilot hardware with ICM-20948)
+- USB 3.0 port for camera
+- Serial/USB connection for MAVLink telemetry
+- 8-core CPU, 3.0+ GHz (for real-time processing)
+- 16 GB RAM minimum
+- SSD with 100+ GB free
+
+**Recommended Hardware:**
+- Dedicated capture computer (Intel NUC or similar)
+- NVIDIA GPU with CUDA support for acceleration
+- Rigid camera-IMU mounting bracket
+- Stellarium planetarium software for SIL/HIL testing
+
+**Software:**
+- Python 3.10+
+- MAVLink library (pymavlink)
+- OpenCV with UVC support
+
+### A.2 Alternative A: GoPro-Based System
 
 **Minimum Hardware:**
 - GoPro Hero 5 Black or newer (Hero 7+ recommended)
@@ -2548,11 +2715,12 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 - SSD with 100+ GB free
 - NVIDIA GPU with CUDA support
 
-### A.2 Configuration 2: ASI585MC + Entaniya All-Sky System
+### A.3 Alternative B: ASI585MC + Entaniya All-Sky System
 
 **Required Hardware:**
 - ZWO ASI585MC or ASI585MC Pro camera
 - Entaniya M12 220 fisheye lens (or compatible M12 mount lens)
+- External IMU (e.g., BNO055, MPU9250) with rigid mounting
 - USB 3.0 port (USB 3.1 Gen 1 or better recommended)
 - 8-core CPU, 3.0+ GHz (for real-time processing)
 - 16 GB RAM minimum (32 GB for video capture)
@@ -2567,7 +2735,7 @@ The system successfully demonstrates that sophisticated astronomical imaging is 
 - NVIDIA GPU with CUDA support for acceleration
 - UPS for uninterrupted operation
 
-### A.3 Software Dependencies
+### A.4 Software Dependencies
 - Python 3.10+
 - NumPy ≥ 1.24.0
 - SciPy ≥ 1.10.0
@@ -2610,12 +2778,35 @@ star-tracker process video.mp4 -o output.tiff \
 ### B.3 Configuration File
 
 ```yaml
-# config.yaml
+# config.yaml - Prototype (Harrier + Orange Cube)
+camera:
+  model: "harrier_10x"
+  interface: "usb"  # or "hdmi"
+
+imu:
+  source: "mavlink"
+  port: "COM6"  # or "/dev/ttyUSB0"
+  baud_rate: 115200
+  sample_rate: 100
+
+stacking:
+  method: "sigma_clip"
+  sigma_low: 3.0
+  sigma_high: 3.0
+
+output:
+  format: "tiff"
+  bit_depth: 16
+```
+
+```yaml
+# config.yaml - Alternative (GoPro Hero 7 Black)
 camera:
   model: "gopro_hero7_black"
   lens_mode: "linear"
 
 gyro:
+  source: "gpmf"  # Extract from video file
   sample_rate: 200
   filter_cutoff: 50
 
@@ -2637,24 +2828,43 @@ output:
 |------|------------|
 | **Centroid** | Intensity-weighted center of a star image |
 | **FWHM** | Full Width at Half Maximum; measure of star image size |
-| **GPMF** | GoPro Metadata Format; telemetry data container |
+| **GPMF** | GoPro Metadata Format; telemetry data container (used by GoPro alternative) |
+| **HIL** | Hardware-in-the-Loop; testing with real hardware components |
 | **Homography** | 8-DOF projective transformation matrix |
+| **ICM-20948** | 9-axis IMU (gyro+accel+mag) used in Orange Cube flight controller |
+| **MAVLink** | Micro Air Vehicle Link; communication protocol for telemetry |
 | **Quaternion** | 4-component representation of 3D rotation |
 | **RANSAC** | Random Sample Consensus; outlier-robust fitting |
 | **Sigma-clipping** | Statistical outlier rejection method |
+| **SIL** | Software-in-the-Loop; testing with simulated inputs (e.g., Stellarium) |
 | **SLERP** | Spherical Linear Interpolation for quaternions |
 | **SNR** | Signal-to-Noise Ratio |
 | **Star tracker** | Device that determines orientation from star positions |
+| **Stellarium** | Open-source planetarium software used for SIL/HIL validation |
+| **VQF** | Versatile Quaternion-based Filter; sensor fusion algorithm |
 
 ---
 
-*Document Version: 1.2*
+*Document Version: 1.6*
 *Last Updated: January 2026*
 *License: MIT*
 
 ---
 
 ## Changelog
+
+### Version 1.6 (January 2026)
+- **MAJOR RESTRUCTURE:** Established Harrier 10x + Orange Cube as validated prototype
+  - Updated abstract to emphasize light pollution resilience and moving platform support
+  - Added Active Silicon Harrier 10x camera specifications (Sony IMX462, 0.0004 lux)
+  - Added Orange Cube ICM-20948 IMU specifications
+  - Added Stellarium SIL/HIL validation environment documentation
+  - Repositioned GoPro and ASI585MC as software-compatible alternatives
+- Updated system architecture diagram for prototype configuration
+- Added support for seaborne, airborne, and land-based vehicle platforms
+- Expanded glossary with SIL/HIL, MAVLink, ICM-20948, Stellarium terms
+- Updated cost comparison tables with prototype pricing
+- Updated all appendices with prototype-first ordering
 
 ### Version 1.2 (January 2026)
 - **NEW SECTION:** Camera + IMU Sensor Fusion (Section 6)
