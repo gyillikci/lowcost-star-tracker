@@ -1013,7 +1013,7 @@ Our system includes a real-time 3D Celestial Sphere Viewer that visualizes the c
 
 **Figure 1: 3D Celestial Sphere Viewer with Camera + IMU Setup**
 
-![3D Celestial Sphere Viewer showing camera FOV projected onto star field, with live camera feed from rigidly coupled camera and IMU (Orange Cube)](Screenshot%202026-01-11%20155616.png)
+![3D Celestial Sphere Viewer showing camera FOV projected onto star field, with live camera feed from rigidly coupled camera and IMU (Orange Cube)](docs/Screenshot%202026-01-11%20155616.png)
 
 *The screenshot shows the 3D Celestial Sphere Viewer (left) displaying the camera's field of view (green trapezoid) projected onto the celestial sphere with stars. The camera feed (right) shows the physical setup with the camera and Orange Cube IMU held together, demonstrating the rigid coupling required for accurate sensor fusion.*
 
@@ -1439,7 +1439,7 @@ Where `*` denotes convolution and PSF represents the motion blur kernel.
 
 **Figure 7.1: Motion Deblur Pipeline**
 
-![Motion Deblur Pipeline](images/motion_deblur/deblur_pipeline.png)
+![Motion Deblur Pipeline](docs/images/motion_deblur/deblur_pipeline.png)
 
 ### 8.2 PSF Generation from IMU Data
 
@@ -1468,7 +1468,7 @@ For a point at image coordinates (x, y):
 
 **Figure 7.2: PSF Visualization for Different Motion Types**
 
-![PSF Visualization](images/motion_deblur/psf_visualization.png)
+![PSF Visualization](docs/images/motion_deblur/psf_visualization.png)
 
 The figure shows PSFs generated from three motion scenarios:
 - **Drift Only**: Linear blur from constant angular rate
@@ -1516,7 +1516,7 @@ A critical corner case occurs when the frame shift is large (significant angular
 
 **Figure 7.3: Star Trail Overlap Concept**
 
-![Overlap Concept](images/motion_deblur/overlap_concept_diagram.png)
+![Overlap Concept](docs/images/motion_deblur/overlap_concept_diagram.png)
 
 **The Problem:**
 - Frame shifts right during exposure
@@ -1548,7 +1548,7 @@ Our solution segments the exposure into time windows and processes overlap regio
 
 **Figure 7.4: Overlap Handling Comparison**
 
-![Overlap Handling Comparison](images/motion_deblur/overlap_handling_comparison.png)
+![Overlap Handling Comparison](docs/images/motion_deblur/overlap_handling_comparison.png)
 
 The comparison shows:
 - Top-left: Sharp reference image
@@ -1560,7 +1560,7 @@ The comparison shows:
 
 **Figure 7.5: Basic Motion Deblur Results**
 
-![Basic Deblur Comparison](images/motion_deblur/basic_deblur_comparison.png)
+![Basic Deblur Comparison](docs/images/motion_deblur/basic_deblur_comparison.png)
 
 Typical performance metrics:
 - PSNR improvement: 3-8 dB (depending on motion severity)
@@ -2224,7 +2224,7 @@ A comprehensive validation framework was developed to quantitatively verify the 
 
 **Figure 11.1: Validation Summary**
 
-![Validation Summary](images/validation/validation_summary.png)
+![Validation Summary](docs/images/validation/validation_summary.png)
 
 #### 11.1.1 Centroid Accuracy Validation
 
@@ -2234,7 +2234,7 @@ A comprehensive validation framework was developed to quantitatively verify the 
 
 **Figure 11.2: Centroid Accuracy Results**
 
-![Centroid Accuracy Results](images/validation/centroid_accuracy_validation.png)
+![Centroid Accuracy Results](docs/images/validation/centroid_accuracy_validation.png)
 
 | Metric | Result | Target | Status |
 |--------|--------|--------|--------|
@@ -2252,7 +2252,7 @@ A comprehensive validation framework was developed to quantitatively verify the 
 
 **Figure 11.3: SNR Scaling Results**
 
-![SNR Scaling Results](images/validation/snr_scaling_validation.png)
+![SNR Scaling Results](docs/images/validation/snr_scaling_validation.png)
 
 | Frames | Measured Improvement | Theoretical (√N) | Deviation |
 |--------|---------------------|------------------|-----------|
@@ -2272,7 +2272,7 @@ A comprehensive validation framework was developed to quantitatively verify the 
 
 **Figure 11.4: Processing Performance Results**
 
-![Processing Performance Results](images/validation/processing_performance_validation.png)
+![Processing Performance Results](docs/images/validation/processing_performance_validation.png)
 
 | Resolution | Star Detection | 10-Frame Stack | Detection FPS |
 |------------|----------------|----------------|---------------|
@@ -2290,7 +2290,7 @@ A comprehensive validation framework was developed to quantitatively verify the 
 
 **Figure 11.5: Motion Compensation Results**
 
-![Motion Compensation Results](images/validation/motion_compensation_validation.png)
+![Motion Compensation Results](docs/images/validation/motion_compensation_validation.png)
 
 | Condition | FWHM (pixels) | Stars Detected |
 |-----------|---------------|----------------|
@@ -2340,7 +2340,7 @@ MEMS gyroscopes suffer from bias drift that accumulates over time, limiting obse
 | Improvement Factor | **12.9x** |
 | Bias Estimation Error | 473 arcsec/s |
 
-![Drift Compensation Performance](images/phase2/phase2_drift_compensation.png)
+![Drift Compensation Performance](docs/images/phase2/phase2_drift_compensation.png)
 *Figure 11.6: Gyroscope drift compensation comparison showing 12.9x improvement in attitude accuracy with star-aided correction.*
 
 The drift compensation enables extended observation sessions (>2 minutes) with sub-degree attitude accuracy, compared to >14° drift without compensation.
@@ -2362,7 +2362,7 @@ Consumer cameras exhibit systematic errors including hot pixels, dark current no
 | Hot Pixel Detection | - | 100% |
 | Hot Pixel Intensity | 1735 ADU | 489 ADU |
 
-![Optical Calibration Results](images/phase2/phase2_optical_calibration.png)
+![Optical Calibration Results](docs/images/phase2/phase2_optical_calibration.png)
 *Figure 11.7: Optical calibration effectiveness showing vignetting correction (top-left), hot pixel detection (top-right), and intensity reduction (bottom-left).*
 
 The calibration achieves near-perfect uniformity (ratio 1.00) and complete hot pixel detection, improving photometric accuracy for faint star detection.
@@ -2388,7 +2388,7 @@ Real images contain false detections from cosmic rays, noise spikes, and satelli
 | Noise Spikes Rejected | 8/8 |
 | Satellite Trails Rejected | 5/5 |
 
-![False Star Rejection](images/phase2/phase2_false_star_rejection.png)
+![False Star Rejection](docs/images/phase2/phase2_false_star_rejection.png)
 *Figure 11.8: False star rejection performance showing perfect classification with F1=1.0.*
 
 The filter achieves perfect precision and recall on synthetic data, ensuring only valid star detections reach the matching algorithm.
@@ -2409,14 +2409,14 @@ Match quality scoring provides reliability estimates for downstream applications
 | Photometric Score | 1.00 | 0.58 |
 | Coverage (Spread) | 0.52 | 0.04 |
 
-![Confidence Metrics](images/phase2/phase2_confidence_metrics.png)
+![Confidence Metrics](docs/images/phase2/phase2_confidence_metrics.png)
 *Figure 11.9: Confidence metric discrimination between good and poor star matches.*
 
 The metrics successfully discriminate between high-quality and degraded matches, enabling automatic quality assessment.
 
 #### 11.2.5 Phase 2 Validation Summary
 
-![Phase 2 Summary](images/phase2/phase2_summary.png)
+![Phase 2 Summary](docs/images/phase2/phase2_summary.png)
 *Figure 11.10: Phase 2 algorithm enhancement validation summary.*
 
 | Test | Status | Impact |
