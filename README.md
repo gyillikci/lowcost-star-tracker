@@ -931,6 +931,14 @@ For accurate sensor fusion, the camera and IMU must be rigidly coupled so that a
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+**Figure 6.0: Prototype Hardware Assembly - Harrier 10x Camera + Orange Cube IMU**
+
+| Front View (Lens) | Rear View (Electronics) |
+|:-----------------:|:-----------------------:|
+| ![Harrier camera front view with 10x zoom lens mounted on Orange Cube](docs/images/hardware_setup_front.jpg) | ![Rear view showing Active Silicon AS-CIB-USBHDMI board and ProfiCNC/HEX Orange Cube](docs/images/hardware_setup_rear.jpg) |
+
+*The prototype assembly showing the Active Silicon Harrier 10x AF-Zoom camera rigidly mounted on the Orange Cube flight controller via a 3D-printed bracket (orange). Front view shows the 10x optical zoom lens (f=5.1-51mm); rear view shows the AS-CIB-USBHDMI-002-A interface board (S/N: 71000300) and the ProfiCNC/HEX/uAvionix Orange Cube with visible I/O connectors (GPS, I2C, USB, CAN, TELEM, ADC).*
+
 **Implementation Options:**
 
 | Configuration | IMU Source | Coupling | Accuracy |
@@ -1420,6 +1428,50 @@ The hybrid system is implemented as a dual-window application, demonstrated usin
 - Adjustable stack count (2-100 frames), intensity multiplier (1-10×)
 - Multiple stack modes: max, average, sum, median
 - Adaptive enhancement options: CLAHE, asinh, log, sqrt stretches
+
+**Figure 6.1: Real-Time Stacking Output - Faint Star Recovery**
+
+| Single Frame (Noisy) | Stacked Result | Enhanced Output |
+|:-------------------:|:--------------:|:---------------:|
+| ![Raw single frame](docs/images/realtime_stacking_raw.png) | ![Stacked frames](docs/images/realtime_stacking_stacked.png) | ![Enhanced output](docs/images/realtime_stacking_enhanced.png) |
+
+*The progression shows faint star recovery through real-time stacking: (Left) Single noisy frame with one visible bright star; (Center) After stacking multiple frames, a second fainter star becomes visible; (Right) Enhanced output with reduced noise and improved star visibility. The green rectangle indicates the template-locked region of interest.*
+
+### 6.10 Simple Star Solver (Proof of Concept)
+
+The `live_simple_star_solve.py` script demonstrates real-time star pattern matching and celestial coordinate estimation using a simplified plate-solving approach.
+
+**Figure 6.2: Simple Star Solver - Live Plate Solving POC**
+
+![Simple Star Solver showing real-time star detection and celestial coordinate estimation](docs/images/homemade_starsolver.png)
+
+*The screenshot shows the Simple Star Solver tracking 50 detected stars with 100% confidence. The estimated RA/Dec coordinates are compared against Stellarium reference values, achieving ~5 arcminute accuracy at 60° FOV. Real-time performance: 18-22 FPS with 21.4 FPS processing rate.*
+
+#### 6.10.1 Features
+
+- **Real-time star detection:** Detects up to 50+ stars per frame at 20+ FPS
+- **Coordinate estimation:** Estimates RA/Dec from detected star patterns
+- **Stellarium validation:** Compares against Stellarium reference for accuracy verification
+- **Confidence scoring:** Reports match quality (0-100%)
+- **Error metrics:** Shows angular error in arcminutes/degrees
+
+#### 6.10.2 Performance Metrics
+
+| Metric | Value |
+|--------|-------|
+| Stars Detected | 50 |
+| Confidence | 74-100% |
+| Angular Error | ~5 arcmin (RA), ~14 arcmin (Dec) |
+| Processing Rate | 18-22 FPS |
+| FOV | 60° |
+
+#### 6.10.3 Usage
+
+```bash
+python live_simple_star_solve.py
+```
+
+The solver uses triangle pattern matching against a star catalog to identify the star field and compute the camera's pointing direction in celestial coordinates.
 
 ---
 
