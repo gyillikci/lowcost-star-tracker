@@ -2,7 +2,7 @@
 
 ## Technical Paper
 
-**Authors:** Low-Cost Star Tracker Development Team
+**Authors:** Giray Yillikci
 **Version:** 1.6
 **Date:** January 2026
 
