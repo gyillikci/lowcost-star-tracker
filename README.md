@@ -935,7 +935,7 @@ For accurate sensor fusion, the camera and IMU must be rigidly coupled so that a
 
 | Front View (Lens) | Rear View (Electronics) |
 |:-----------------:|:-----------------------:|
-| ![Harrier camera front view with 10x zoom lens mounted on Orange Cube](docs/images/hardware_setup_front.jpg) | ![Rear view showing Active Silicon AS-CIB-USBHDMI board and ProfiCNC/HEX Orange Cube](docs/images/hardware_setup_rear.jpg) |
+| ![Harrier camera front view with 10x zoom lens mounted on Orange Cube](docs/images/hardware_setup_front.jpeg) | ![Rear view showing Active Silicon AS-CIB-USBHDMI board and ProfiCNC/HEX Orange Cube](docs/images/hardware_setup_side.jpeg) |
 
 *The prototype assembly showing the Active Silicon Harrier 10x AF-Zoom camera rigidly mounted on the Orange Cube flight controller via a 3D-printed bracket (orange). Front view shows the 10x optical zoom lens (f=5.1-51mm); rear view shows the AS-CIB-USBHDMI-002-A interface board (S/N: 71000300) and the ProfiCNC/HEX/uAvionix Orange Cube with visible I/O connectors (GPS, I2C, USB, CAN, TELEM, ADC).*
 
