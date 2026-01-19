@@ -51,7 +51,11 @@ The high cost of commercial star trackers creates significant barriers for:
 
 ### 1.3 Proposed Solution
 
-We present a software-intensive approach that shifts complexity from expensive hardware to sophisticated algorithms. The core concept is to capture faint starlight even in light-polluted environments by combining gyroscope-based motion compensation with video frame stacking—stabilizing video from moving platforms (seaborne, airborne, and land-based vehicles), then aligning and stacking hundreds of frames to increase the signal-to-noise ratio and reveal stars invisible in individual frames. See [video demonstration](https://www.youtube.com/shorts/uqEzUAQ2iE8).
+We present a software-intensive approach that shifts complexity from expensive hardware to sophisticated algorithms. The core concept is to capture faint starlight even in light-polluted environments by combining gyroscope-based motion compensation with video frame stacking—stabilizing video from moving platforms (seaborne, airborne, and land-based vehicles), then aligning and stacking hundreds of frames to increase the signal-to-noise ratio and reveal stars invisible in individual frames.
+
+[![Video Demonstration](https://img.youtube.com/vi/uqEzUAQ2iE8/0.jpg)](https://www.youtube.com/shorts/uqEzUAQ2iE8)
+
+*Click thumbnail to watch video demonstration*
 
 **Prototype System:** Our validated prototype uses the Active Silicon Harrier 10x AF-Zoom Camera paired with an Orange Cube flight controller (ICM-20948 9-axis IMU). The system is tested using Stellarium planetarium software to generate high-fidelity synthetic star fields, providing a controlled SIL/HIL environment with configurable motion and vibration profiles.
 
@@ -496,7 +500,11 @@ The system employs VQF (Versatile Quaternion-based Filter) for sensor fusion:
 
 ### 5.3 SIL/HIL Validation Environment: Stellarium
 
-The prototype is validated using Stellarium planetarium software to generate controlled test conditions. See [Stellarium Software-in-the-Loop demonstration](https://www.youtube.com/watch?v=_I9gVQl0hvA).
+The prototype is validated using Stellarium planetarium software to generate controlled test conditions.
+
+[![Stellarium SIL Demonstration](https://img.youtube.com/vi/_I9gVQl0hvA/0.jpg)](https://www.youtube.com/watch?v=_I9gVQl0hvA)
+
+*Click thumbnail to watch Stellarium Software-in-the-Loop demonstration*
 
 #### 5.3.1 Test Setup
 
@@ -1297,7 +1305,9 @@ The camera+IMU sensor fusion provides critical advantages:
 
 A demonstration of the camera+IMU fusion system is available:
 
-**YouTube Short:** [▶️ Watch Demo Video](https://youtube.com/shorts/96TbY9RKdZE)
+[![Camera+IMU Fusion Demo](https://img.youtube.com/vi/96TbY9RKdZE/0.jpg)](https://youtube.com/shorts/96TbY9RKdZE)
+
+*Click thumbnail to watch Camera + IMU Sensor Fusion demonstration*
 
 The video shows:
 1. Physical setup with camera and IMU (orange cube) rigidly coupled
