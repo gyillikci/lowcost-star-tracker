@@ -341,18 +341,75 @@ The system processes data through eight sequential stages:
 ### 4.4 Software Architecture
 
 ```
-star_tracker/
-├── __init__.py              # Package exports
-├── cli.py                   # Command-line interface (Click)
-├── config.py                # Configuration dataclasses
-├── pipeline.py              # Main orchestration
-├── gyro_extractor.py        # Gyroscope data processing
-├── motion_compensator.py    # Frame stabilization
-├── frame_extractor.py       # Video frame extraction
-├── star_detector.py         # Star detection & matching
-├── quality_assessor.py      # Frame quality scoring
-├── frame_aligner.py         # Sub-pixel alignment
-└── stacker.py               # Image stacking algorithms
+lowcost-star-tracker/
+├── pyproject.toml                    # Project configuration
+├── README.md                         # Main documentation
+│
+├── Root-level scripts/
+│   ├── compare_stabilization.py      # Stabilization comparison tool
+│   ├── compare_videos.py             # Video comparison utility
+│   ├── convert_md_to_docx.py         # Documentation converter
+│   ├── debug_stabilization.py        # Stabilization debugging
+│   ├── gyro_stabilizer.py            # Gyroscope stabilization
+│   ├── live_simple_star_solve.py     # Simple star solving (live)
+│   ├── live_tetra3_solve.py          # Tetra3 star solving (live)
+│   ├── plot_gyro.py                  # Gyroscope data visualization
+│   ├── stabilize_video.py            # Video stabilization tool
+│   ├── stellarium_config.py          # Stellarium configuration
+│   ├── stellarium_shake.py           # Stellarium shake simulator
+│   ├── stellarium_toggle_labels.py   # Stellarium UI control
+│   └── test_witmotion_pywitmotion.py # IMU testing
+│
+├── src/
+│   ├── algorithms/                   # Core algorithms
+│   ├── calibration/                  # Calibration modules
+│   ├── plate_solving/                # Plate solving algorithms
+│   └── star_tracker/                 # Main star tracker package
+│
+├── camera/                           # Camera and visualization tools
+│   ├── celestial_sphere_3d.py        # 3D celestial sphere visualization
+│   ├── celestial_sphere_viewer.py    # Celestial sphere viewer
+│   ├── integrated_stabilizer.py      # Integrated stabilization system
+│   └── usb_camera_viewer.py          # USB camera interface
+│
+├── calibration/                      # Calibration data and scripts
+│
+├── imu/                              # IMU integration
+│   ├── __init__.py                   # IMU package initialization
+│   ├── find_witmotion_windows.py     # Windows IMU detection
+│   ├── pywitmotion_adapter.py        # Pywitmotion adapter
+│   └── witmotion_reader.py           # Witmotion IMU reader
+│
+├── mavlink/                          # MAVLink integration
+│   └── orange_cube_reader.py         # Orange Cube flight controller
+│
+├── wfb-stabilizer/                   # WFB stabilizer variants
+│   ├── README.md                     # WFB documentation
+│   ├── ejo_wfb_stabilizer.py         # EJO WFB stabilizer
+│   └── run_camera1_*.py              # Various camera stabilizer configs
+│
+├── validation/                       # Validation framework
+│   ├── VALIDATION_REPORT.md          # Validation report
+│   ├── generate_validation_plots.py  # Plot generation
+│   └── validation_framework.py       # Validation framework
+│
+├── experiments/                      # Experimental code
+├── motion_deblur/                    # Motion deblur algorithms
+├── output/                           # Output files
+│
+├── external/                         # External dependencies
+│   ├── pywitmotion/                  # Pywitmotion library
+│   └── tetra3/                       # Tetra3 star matching
+│
+├── data/
+│   └── lens_profiles/                # Camera calibration profiles
+│
+├── examples/                         # Example videos and data
+│
+└── docs/                             # Documentation
+    ├── Development_Roadmap.md        # Project roadmap
+    ├── LowCost_StarTracker_Technical_Paper.md  # Technical paper
+    └── images/                       # Documentation images
 ```
 
 ---
