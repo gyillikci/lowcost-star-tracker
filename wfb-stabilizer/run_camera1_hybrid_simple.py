@@ -20,8 +20,8 @@ from mavlink.orange_cube_reader import OrangeCubeReader
 
 #################### USER VARS ######################################
 CAMERA_INDEX = 0
-CAMERA_WIDTH = 1280
-CAMERA_HEIGHT = 720
+CAMERA_WIDTH = 1920
+CAMERA_HEIGHT = 1080
 CAMERA_FPS = 60
 
 MAVLINK_PORT = "COM6"
@@ -220,7 +220,7 @@ def main():
                     _, max_val, _, max_loc = cv2.minMaxLoc(result)
                     quality = max_val
                     
-                    if max_val > 0.3:
+                    if max_val > 0.5:
                         found_x = x1 + max_loc[0] + tw//2
                         found_y = y1 + max_loc[1] + th//2
                         dx = tx - found_x
